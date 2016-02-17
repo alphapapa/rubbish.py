@@ -1,0 +1,49 @@
+* pytrash
+
+There is a need for a good command-line XDG trash bin utility.  =trash-cli= works, but I can't follow its code, and it's far from PEP-8.  It's very slow, especially from a cold cache.  There must be a better way.
+
+** Phase 1: trash files and directories
+Make it delete files to the XDG trash bin.
+
+*** Verify trash directory
+Make sure it exists and is writable.
+
+If it's not, should we create it, or prompt to create it?  (Occasionally I have manually emptied the trash by just doing =rm -rf ~/.local/share/Trash=).
+
+*** If on separate file system, check free space
+This could be helpful.  e.g. if deleting a file from =/tmp=, and =/tmp= is on a separate filesystem, there might not be enough space in the trash directory to move the files there.
+
+However, if there were a lot of files to be trashed, it might not be worth the time to scan them all and add up the disk space.
+
+*** For each file to be trashed
+
+**** Create trashinfo file
+Do this first, so if the operation is aborted, we won't have a situation where the file was trashed but its trashinfo file was not, causing it to not show up in trash GUIs, which would cause it to appear to have vanished.
+
+Rename the trashinfo file if one already exists by that name.
+
+**** Trash file
+Move the file to the trash directory.  Rename if necessary (e.g. if a file by that name already exists).
+
+** Phase 2: list trash contents
+
+Should include options to limit by time, e.g. trashed within the last 2 weeks, or trashed more than 2 weeks ago.  Also by size, type, filename, even grepping of contents.
+
+*** Display files trashed beneath current directory
+Sometimes a directory may not exist anymore.  But when in a directory, it would be very helpful to be able to list files that have been trashed from beneath the current directory, and to restore them.
+
+*** Display entire trash contents
+
+** Phase 3: restore from trash
+
+Should have options to restore to original location (requiring re-creating directory structure), or to other location.
+
+Providing a menu of files (like =restore-trash=) would be good.  Also would be good to give paths or names and either offer a menu based on the ones given, or restore any matches to current directory.
+
+Also should have an option to restore a copy of the files and leave them in the trash.  This could be useful, because restoring files from arbitrary paths to other arbitrary paths using a terminal could be confusing and error-prone, so keeping a copy in the trash would make it easier in the case one accidentally deleted a wanted file after restoring it from the trash. (So it might also be helpful to have some way to avoid re-trashing the same files if they're already in the trash.  But that's probably out-of-scope, because doing it "correctly" would require going so far as checksumming files, which would be messy and slow.)
+
+** Phase 4: empty trash
+
+This should be the easiest part.
+
+Would be nice for =-v= to show before/after disk usage, etc.
