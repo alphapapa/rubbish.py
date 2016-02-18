@@ -4,9 +4,11 @@
 
 import ConfigParser
 import logging as log
+import os
 
 
 # * Classes
+
 
 class TrashBin(object):
     """Represents an XDG trash bin."""
@@ -17,17 +19,30 @@ class TrashBin(object):
         # Verify path is a trash bin
         if not self._verify():
             log.critical("Path does not appear to be a valid XDG trash bin: %s" % self.path)
+
             return False
 
     def _verify(self):
         """Return True if TrashBin appears to be a valid XDG trash bin."""
 
-        pass
+        # TODO: Should we check write permission too?
+
+        # Verify main directory exists
+        if not os.path.exists(self.path):
+            return False
+
+        # Verify subdirs exist
+        for d in ['files', 'info']:
+            if not os.path.exists(os.path.join(self.path, d)):
+                return False
 
     def item_exists(name):
         """Return True if a file or directory _name_ exists in the trash
         bin.
         """
+
+        # Should this check just the actual file in "files/", or also
+        # the associated trashinfo file in "info/"?
 
         pass
 
@@ -37,11 +52,11 @@ class TrashedPath(object):
 
     def __init__(self, path=None, trashinfo_file_path=None):
         self.date_trashed = None
-        self.path = None
+        self.original_path = None
         self.trashed = False
 
         if path:
-            self.path = path
+            self.original_path = path
         if trashinfo_file_path:
             self._parse_trashinfo_file(trashinfo_file_path)
 
@@ -66,7 +81,7 @@ class TrashedPath(object):
 
         # Read and assign attributes
         if data.hasattr('Path'):
-            self.path = data['Path']
+            self.original_path = data['Path']
         if data.hasattr('DeletionDate'):
             self.date_trashed = data['DeletionDate']
 
