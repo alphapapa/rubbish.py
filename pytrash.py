@@ -7,6 +7,11 @@ import logging as log
 import os
 
 
+# * Constants
+
+SECTION = 'Trash Info'
+
+
 # * Classes
 
 
@@ -58,23 +63,23 @@ class TrashedPath(object):
         if path:
             self.original_path = path
         if trashinfo_file_path:
-            self._parse_trashinfo_file(trashinfo_file_path)
+            self._read_trashinfo_file(trashinfo_file_path)
 
-    def _parse_trashinfo_file(self, trashinfo_file_path):
-        """Parse .trashinfo file and populate object attributes."""
+    def _read_trashinfo_file(self, trashinfo_file_path):
+        """Read .trashinfo file and populate object attributes."""
 
         trashinfo = ConfigParser.SafeConfigParser(allow_no_value=True)
 
         # Read file
         try:
             trashinfo.read(trashinfo_file_path)
-        except Exception:
+        except:
             log.exception("Unable to read trashinfo file: %s" % trashinfo_file_path)
             return False
 
         # Load section
-        if trashinfo.has_section('Trash Info'):
-            data = trashinfo.items('Trash Info')
+        if trashinfo.has_section(SECTION):
+            data = trashinfo.items(SECTION)
         else:
             log.warning("trashinfo file appears invalid or empty: %s" % trashinfo_file_path)
             return False
@@ -88,12 +93,22 @@ class TrashedPath(object):
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
 
-        pass
+        trashinfo = ConfigParser.SafeConfigParser()
+        trashinfo.add_section(SECTION)
+        trashinfo.set(SECTION, 'Path', self.path)
+        trashinfo.set(SECTION, 'DeletionDate', self.date_trashed)
+
+        # Actually write the file
+        # with open('example.cfg', 'wb') as configfile:
+        #     config.write(configfile)
 
     def restore(self, dest_path=None):
         """Restore a path from the trash to its original location.  If
         _dest_path_ is given, restore to there instead.
         """
+
+        # Be careful not to overwrite existing files when using
+        # os.path.rename!
 
         pass
 
@@ -104,6 +119,8 @@ class TrashedPath(object):
 
         # os.path.basename behaves differently than the basename unix
         # util. Will have to compensate for this.
+
+        # Set date_trashed
 
         # Write trashinfo file
         try:
