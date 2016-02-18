@@ -20,11 +20,12 @@ class TrashBin(object):
 
     def __init__(self, path):
         self.path = path
+        self.files_path = os.path.join(self.path, 'files')
+        self.info_path = os.path.join(self.path, 'info')
 
         # Verify path is a trash bin
         if not self._verify():
             log.critical("Path does not appear to be a valid XDG trash bin: %s" % self.path)
-
             return False
 
     def _verify(self):
@@ -32,13 +33,9 @@ class TrashBin(object):
 
         # TODO: Should we check write permission too?
 
-        # Verify main directory exists
-        if not os.path.exists(self.path):
-            return False
-
-        # Verify subdirs exist
-        for d in ['files', 'info']:
-            if not os.path.exists(os.path.join(self.path, d)):
+        # Verify dirs exist
+        if not (os.path.exists(self.files_path) and
+                os.path.exists(self.info_path)):
                 return False
 
     def item_exists(name):
@@ -57,8 +54,12 @@ class TrashedPath(object):
 
     def __init__(self, path=None, trashinfo_file_path=None):
         self.date_trashed = None
+        self.filename = None
         self.original_path = None
         self.trashed = False
+
+        global trash_bin
+        self.trash_bin = trash_bin
 
         if path:
             self.original_path = path
@@ -87,20 +88,31 @@ class TrashedPath(object):
         # Read and assign attributes
         if data.hasattr('Path'):
             self.original_path = data['Path']
+        else:
+            log.warning("trashinfo file has no Path attribute: %s" % trashinfo_file_path)
+
         if data.hasattr('DeletionDate'):
             self.date_trashed = data['DeletionDate']
+        else:
+            log.warning("trashinfo file has no DeletionDate attribute: %s" % trashinfo_file_path)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
 
+        # Setup trashinfo
         trashinfo = ConfigParser.SafeConfigParser()
         trashinfo.add_section(SECTION)
         trashinfo.set(SECTION, 'Path', self.path)
         trashinfo.set(SECTION, 'DeletionDate', self.date_trashed)
 
-        # Actually write the file
-        # with open('example.cfg', 'wb') as configfile:
-        #     config.write(configfile)
+        # Write the file
+        try:
+            with open(os.path.join(self.trash_bin.info_path, self.filename),
+                      'wb') as f:
+                trashinfo.write(f)
+        except:
+            log.exception("Unable to write trashinfo file: %s" % self.trashinfo_file_path)
+            return False
 
     def restore(self, dest_path=None):
         """Restore a path from the trash to its original location.  If
@@ -129,3 +141,5 @@ class TrashedPath(object):
             return False
 
         # Move path to trash
+
+trash_bin = TrashBin()
