@@ -7,10 +7,13 @@ import logging as log
 import os
 import re
 
+from datetime import datetime
+
 
 # * Constants
 
 SECTION = 'Trash Info'
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 # * Classes
@@ -62,15 +65,18 @@ class TrashedPath(object):
         self.trash_bin = trash_bin
 
         self.basename = None
-        self.date_trashed = None
         self.original_path = None
         self.trashed = False
 
+        # TODO: Check FreeDesktop.org specs to see if timezone/UTC is specified.
+        self.date_trashed = None  # datetime object in UTC
+
         if path:
             self.original_path = path
-            self.basename = self._basename(self.original_path)
+            self.basename = self._basename(path)
         if trashinfo_file_path:
-            self._read_trashinfo_file(trashinfo_file_path)
+            self.trashinfo_file_path = trashinfo_file_path
+            self._read_trashinfo_file()
 
     def _basename(self, path):
         """Return basename of _path_.
@@ -84,6 +90,11 @@ class TrashedPath(object):
     def _rename_basename_if_necessary(self):
         """Rename self.basename if it already exists in the trash bin."""
 
+        # TODO: Consider doing the suffix differently. If there were
+        # some files named like "foo_100", a situation could arise in
+        # which they failed to get trashed because of naming
+        # conflicts.
+
         tries = 0
         while self.trash_bin.item_exists(self.basename):
             log.debug("Path exists in trash: ", test_path)
@@ -94,7 +105,6 @@ class TrashedPath(object):
 
             # Get "_1"-like suffix
             match = re.search('^(.*)_([0-9]+)$', self.basename)
-
             if match:
                 # Increment existing _number suffix
                 name_without_suffix = match.group(0)
@@ -108,39 +118,45 @@ class TrashedPath(object):
             log.debug("Trying new basename: ", self.basename)
             tries += 1
 
-        log.debug("Done renaming.")
+        log.debug("Renamed %s times.", tries)
 
-    def _read_trashinfo_file(self, trashinfo_file_path):
-        """Read .trashinfo file and populate object attributes."""
+    def _read_trashinfo_file(self):
+        """Read .trashinfo file and set object properties."""
 
         trashinfo = ConfigParser.SafeConfigParser(allow_no_value=True)
 
         # Read file
         try:
-            trashinfo.read(trashinfo_file_path)
+            trashinfo.read(self.trashinfo_file_path)
         except:
-            log.exception("Unable to read trashinfo file: %s", trashinfo_file_path)
+            log.exception("Unable to read trashinfo file: %s", self.trashinfo_file_path)
             return False
 
-        self.basename = os.path.basename(trashinfo_file_path)
+        # Set basename from trashinfo_file_path
+        self.basename = os.path.basename(self.trashinfo_file_path)
 
         # Load section
         if trashinfo.has_section(SECTION):
             data = trashinfo.items(SECTION)
         else:
-            log.warning("trashinfo file appears invalid or empty: %s", trashinfo_file_path)
+            log.warning("trashinfo file appears invalid or empty: %s", self.trashinfo_file_path)
             return False
 
         # Read and assign attributes
-        if data.hasattr('Path'):
+        if 'Path' in data:
             self.original_path = data['Path']
         else:
-            log.warning("trashinfo file has no Path attribute: %s", trashinfo_file_path)
+            # If the Path is missing, the trashinfo file is useless
+            log.warning("trashinfo file has no Path attribute: %s", self.trashinfo_file_path)
+            return False
 
-        if data.hasattr('DeletionDate'):
-            self.date_trashed = data['DeletionDate']
+        if 'DeletionDate' in data:
+            try:
+                self.date_trashed = datetime.strptime(data['DeletionDate'], DATE_FORMAT)
+            except ValueError:
+                log.exception("Unable to parse date (%s) from trashinfo file: %s", data['DeletionDate'], self.trashinfo_file_path)
         else:
-            log.warning("trashinfo file has no DeletionDate attribute: %s", trashinfo_file_path)
+            log.warning("trashinfo file has no DeletionDate attribute: %s", self.trashinfo_file_path)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
@@ -159,7 +175,7 @@ class TrashedPath(object):
         trashinfo = ConfigParser.SafeConfigParser()
         trashinfo.add_section(SECTION)
         trashinfo.set(SECTION, 'Path', self.path)
-        trashinfo.set(SECTION, 'DeletionDate', self.date_trashed)
+        trashinfo.set(SECTION, 'DeletionDate', DATE_FORMAT % self.date_trashed)
 
         # Write the file
         try:
@@ -175,7 +191,17 @@ class TrashedPath(object):
         """
 
         # Be careful not to overwrite existing files when using
-        # os.path.rename!
+        # os.path.rename! shutil.move might be useful, but it's
+        # probably not the right solution either, because I don't want
+        # to move a directory into a directory. e.g. If
+        # /home/user/foo/bar is trashed, and then the user creates
+        # that directory again, and then tries to restore it,
+        # ~/foo/bar already exists, so shutil.move would put it in
+        # ~/foo/bar/bar, which is not desired. But os.path.rename
+        # would overwrite ~/foo/bar with the trashed bar, which could
+        # delete an entire subdirectory tree, which is dangerous. I
+        # don't know why Python doesn't seem to have some kind of
+        # atomic, safe move/rename.
 
         pass
 
@@ -186,12 +212,20 @@ class TrashedPath(object):
         if not self._rename_basename_if_necessary():
             return False
 
-        # TODO: Set date_trashed
+        # Set date_trashed
+        self.date_trashed = datetime.utcnow()
 
         # Write trashinfo file
         if not self._write_trashinfo_file():
             return False
 
         # TODO: Move path to trash
+
+        # TODO: Verify path doesn't already exist
+
+        # Do I need to verify this again here?
+        # _rename_basename_if_necessary() should take care of this. Of
+        # course, there's still a chance of a race condition, but if
+        # os.path.rename overwrites, is it possible to avoid this?
 
 trash_bin = TrashBin()
