@@ -12,8 +12,8 @@ from datetime import datetime
 
 # * Constants
 
-SECTION = 'Trash Info'
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
+TRASHINFO_SECTION_HEADER = 'Trash Info'
+TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 # * Classes
@@ -64,9 +64,11 @@ class TrashedPath(object):
         global trash_bin
         self.trash_bin = trash_bin
 
-        self.basename = None
         self.original_path = None
         self.trashed = False
+
+        # Name in trash bin (possibly with suffix for uniqueness)
+        self.basename = None
 
         # TODO: Check FreeDesktop.org specs to see if timezone/UTC is specified.
         self.date_trashed = None  # datetime object in UTC
@@ -87,7 +89,7 @@ class TrashedPath(object):
 
         return os.path.basename(path.rstrip('/'))
 
-    def _rename_basename_if_necessary(self):
+    def _change_basename_if_necessary(self):
         """Rename self.basename if it already exists in the trash bin."""
 
         # TODO: Consider doing the suffix differently. If there were
@@ -97,11 +99,10 @@ class TrashedPath(object):
 
         tries = 0
         while self.trash_bin.item_exists(self.basename):
-            log.debug("Path exists in trash: ", test_path)
+            log.debug("Path exists in trash: ", self.basename)
 
             if tries == 100:
-                log.critical("Tried 100 names.  That seems like too many.")
-                return False
+                raise Exception("Tried 100 names.  That seems like too many.")
 
             # Get "_1"-like suffix
             match = re.search('^(.*)_([0-9]+)$', self.basename)
@@ -118,7 +119,7 @@ class TrashedPath(object):
             log.debug("Trying new basename: ", self.basename)
             tries += 1
 
-        log.debug("Renamed %s times.", tries)
+        log.debug("Renamed %s times", tries)
 
     def _read_trashinfo_file(self):
         """Read .trashinfo file and set object properties."""
@@ -129,32 +130,33 @@ class TrashedPath(object):
         try:
             trashinfo.read(self.trashinfo_file_path)
         except:
-            log.exception("Unable to read trashinfo file: %s", self.trashinfo_file_path)
-            return False
+            log.critical("Unable to read trashinfo file: %s", self.trashinfo_file_path)
+            raise
 
         # Set basename from trashinfo_file_path
         self.basename = os.path.basename(self.trashinfo_file_path)
 
         # Load section
-        if trashinfo.has_section(SECTION):
-            data = trashinfo.items(SECTION)
+        if trashinfo.has_section(TRASHINFO_SECTION_HEADER):
+            data = trashinfo.items(TRASHINFO_SECTION_HEADER)
         else:
-            log.warning("trashinfo file appears invalid or empty: %s", self.trashinfo_file_path)
-            return False
+            log.critical("trashinfo file appears invalid or empty: %s", self.trashinfo_file_path)
+            raise
 
         # Read and assign attributes
         if 'Path' in data:
             self.original_path = data['Path']
         else:
-            # If the Path is missing, the trashinfo file is useless
-            log.warning("trashinfo file has no Path attribute: %s", self.trashinfo_file_path)
-            return False
+            # The Path is missing, so the trashinfo file is useless
+            log.critical("trashinfo file has no Path attribute: %s", self.trashinfo_file_path)
+            raise
 
         if 'DeletionDate' in data:
             try:
-                self.date_trashed = datetime.strptime(data['DeletionDate'], DATE_FORMAT)
+                self.date_trashed = datetime.strptime(data['DeletionDate'], TRASHINFO_DATE_FORMAT)
             except ValueError:
-                log.exception("Unable to parse date (%s) from trashinfo file: %s", data['DeletionDate'], self.trashinfo_file_path)
+                log.critical("Unable to parse date (%s) from trashinfo file: %s", data['DeletionDate'], self.trashinfo_file_path)
+                raise
         else:
             log.warning("trashinfo file has no DeletionDate attribute: %s", self.trashinfo_file_path)
 
@@ -173,17 +175,17 @@ class TrashedPath(object):
 
         # Setup trashinfo
         trashinfo = ConfigParser.SafeConfigParser()
-        trashinfo.add_section(SECTION)
-        trashinfo.set(SECTION, 'Path', self.path)
-        trashinfo.set(SECTION, 'DeletionDate', DATE_FORMAT % self.date_trashed)
+        trashinfo.add_section(TRASHINFO_SECTION_HEADER)
+        trashinfo.set(TRASHINFO_SECTION_HEADER, 'Path', self.path)
+        trashinfo.set(TRASHINFO_SECTION_HEADER, 'DeletionDate', TRASHINFO_DATE_FORMAT % self.date_trashed)
 
         # Write the file
         try:
             with open(os.path.join(self.trash_bin.info_path, self.filename), 'wb') as f:
                 trashinfo.write(f)
         except:
-            log.exception("Unable to write trashinfo file: %s", self.trashinfo_file_path)
-            return False
+            log.critical("Unable to write trashinfo file: %s", self.trashinfo_file_path)
+            raise
 
     def restore(self, dest_path=None):
         """Restore a path from the trash to its original location.  If
@@ -209,22 +211,20 @@ class TrashedPath(object):
         """Write .trashinfo file, then move the path to the trash."""
 
         # Rename if necessary
-        if not self._rename_basename_if_necessary():
-            return False
+        self._change_basename_if_necessary()
 
         # Set date_trashed
         self.date_trashed = datetime.utcnow()
 
         # Write trashinfo file
-        if not self._write_trashinfo_file():
-            return False
+        self._write_trashinfo_file()
 
         # TODO: Move path to trash
 
         # TODO: Verify path doesn't already exist
 
         # Do I need to verify this again here?
-        # _rename_basename_if_necessary() should take care of this. Of
+        # _change_basename_if_necessary() should take care of this. Of
         # course, there's still a chance of a race condition, but if
         # os.path.rename overwrites, is it possible to avoid this?
 
