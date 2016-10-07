@@ -18,7 +18,6 @@ import parsedatetime
 TRASHINFO_SECTION_HEADER = 'Trash Info'
 TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
-
 # * Classes
 
 class InvalidTrashBin(Exception):
@@ -37,7 +36,9 @@ class TrashBin(object):
         self._verify()
 
     def _verify(self):
-        """Return True if TrashBin appears to be a valid XDG trash bin."""
+        """Verify that trash bin appears to be a valid XDG trash bin.
+
+        Considered valid if the "files" and "info" subdirectories exist."""
 
         # TODO: Should we check write permission too?
 
@@ -67,11 +68,14 @@ class TrashBin(object):
         before this will be deleted.
         """
 
+        if not self.items:
+            self._read_info_files()
+
         if not trashed_before:
             raise Exception("trashed_before is required right now.")
 
-        cal = parsedatetime.Calendar()
-        trashed_before = datetime.fromtimestamp(mktime(cal.parse(trashed_before)[0]))
+        # Convert relative date string to datetime object
+        trashed_before = self._date_string_to_datetime(trashed_before)
 
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
@@ -81,7 +85,7 @@ class TrashBin(object):
 
         print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
 
-    def list_items(self, older_than_days=None):
+    def list_items(self, trashed_before=None):
         """List items in trash bin.
 
         Trashed directories are not descended into."""
@@ -89,15 +93,24 @@ class TrashBin(object):
         if not self.items:
             self._read_info_files()
 
-        if older_than_days:
-            delta = timedelta(days=older_than_days)
-            now = datetime.now()
-            for f in sorted(self.items, key=lambda i: i.date_trashed):
-                if now - f.date_trashed > delta:
-                    print("{}: {}".format(f.date_trashed, f.original_path))
+        if trashed_before:
+            # Convert relative date string to datetime object
+            trashed_before = self._date_string_to_datetime(trashed_before)
 
+            for f in sorted(self.items, key=lambda i: i.date_trashed):
+                if f.date_trashed < trashed_before:
+                    print("{}: {}".format(f.date_trashed, f.original_path))
         else:
+            # Print all items
             print(self.items)
+
+    def _date_string_to_datetime(s):
+        "Convert date string to a datetime object using parsedatetime.Calendar()."
+
+        # It's a shame that such a great library like parsedatetime
+        # didn't go the extra inch and provide a decent API to get a
+        # datetime object out of it.
+        return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
     def _read_info_files(self):
         """Read .trashinfo files in bin and populate list of files."""
