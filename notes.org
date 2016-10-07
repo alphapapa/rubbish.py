@@ -1,4 +1,4 @@
-* pytrash
+* Plans
 
 There is a need for a good command-line XDG trash bin utility.  =trash-cli= works, but I can't follow its code, and it's far from PEP-8.  It's very slow, especially from a cold cache.  There must be a better way.
 
@@ -47,3 +47,70 @@ Also should have an option to restore a copy of the files and leave them in the 
 This should be the easiest part.
 
 Would be nice for =-v= to show before/after disk usage, etc.
+
+* Other projects
+
+** [[http://www.ubuntugeek.com/autotrash-purges-files-from-your-trash-based-on-age-andor-filename.html][Autotrash]]
+
+I didn't realize that this package is in Debian and Ubuntu.  It's even in Python.  However, its code is very messy...
+
+** [[https://github.com/ktaneishi/pytrash][ktaneishi/pytrash: CLI for GNOME trash can.]]
+
+Not bad but doesn't use nice date handling and such.
+
+** [[https://github.com/notklaatu/trashy][notklaatu/trashy: A sane intermediary to the unix 'rm' command. This is a mirror of gitlab.com/trashy]]
+
+It's in Bash.  Why?
+
+** [[https://github.com/hsoft/send2trash][hsoft/send2trash: Python library to natively send files to Trash (or Recycle bin) on all platforms.]]
+
+In Python, and multi-platform.  But it doesn't even use classes...
+
+* Name ideas
+
++ Baldertrash
+
+** Synonyms for trash
+
+-  amphigory
+-  balderdash
+-  baloney
+-  bilge
+-  bosh
+-  brummagem
+-  bunkum
+-  canaille
+-  chaff
+-  clamjamfry
+-  crap
+-  destroy
+-  dregs
+-  drivel
+-  dross
+-  flapdoodle
+-  flotsam
+-  flummery
+-  folderol
+-  frippery
+-  galimatias
+-  garbage
+-  gimcrackery
+-  hogwash
+-  hokum
+-  hooey
+-  junk
+-  malarkey
+-  offal
+-  piffle
+-  refuse
+-  riffraff
+-  rot
+-  rubbish
+-  rubble
+-  ruin
+-  slag
+-  sordes
+-  stultiloquence
+-  waste
+-  wastrel
+
