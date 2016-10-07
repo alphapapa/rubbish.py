@@ -8,6 +8,10 @@ import re
 from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
 from datetime import datetime, timedelta
 from pathlib import Path
+from time import mktime
+
+import hurry.filesize
+import parsedatetime
 
 # * Constants
 
@@ -27,7 +31,7 @@ class TrashBin(object):
         self.path = Path(path)
         self.files_path = self.path / "files"
         self.info_path = self.path / "info"
-        self.files = []
+        self.items = []
 
         # Verify path is a trash bin
         self._verify()
@@ -56,36 +60,57 @@ class TrashBin(object):
 
     #     return False
 
-    def list_items(self, older_than=None):
+    def empty(self, trashed_before=None):
+        """Delete items from trash bin.
+
+        trashed_before: datetime.datetime object.  Items trashed
+        before this will be deleted.
+        """
+
+        if not trashed_before:
+            raise Exception("trashed_before is required right now.")
+
+        cal = parsedatetime.Calendar()
+        trashed_before = datetime.fromtimestamp(mktime(cal.parse(trashed_before)[0]))
+
+        total_size = 0
+        for item in sorted(self.items, key=lambda i: i.date_trashed):
+            if item.date_trashed < trashed_before:
+                total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+                print("Would delete: {}: {}".format(item.date_trashed, item.original_path))
+
+        print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+
+    def list_items(self, older_than_days=None):
         """List items in trash bin.
 
         Trashed directories are not descended into."""
 
-        if not self.files:
+        if not self.items:
             self._read_info_files()
 
-        if older_than:
-            delta = timedelta(days=30)
+        if older_than_days:
+            delta = timedelta(days=older_than_days)
             now = datetime.now()
-            for f in sorted(self.files, key=lambda i: i.date_trashed):
+            for f in sorted(self.items, key=lambda i: i.date_trashed):
                 if now - f.date_trashed > delta:
                     print("{}: {}".format(f.date_trashed, f.original_path))
 
         else:
-            print(self.files)
+            print(self.items)
 
     def _read_info_files(self):
         """Read .trashinfo files in bin and populate list of files."""
 
         for f in self.info_path.glob("*.trashinfo"):
             try:
-                self.files.append(TrashedPath(bin=self, info_file=f))
+                self.items.append(TrashedPath(bin=self, info_file=f))
             except Exception:
                 raise Exception("sigh")
             else:
                 log.debug("Read info file: %s", f)
 
-        log.debug("Read %s info files", len(self.files))
+        log.debug("Read %s info files", len(self.items))
 
 class TrashedPath(object):
     """Represents a trashed (or to-be-trashed) file or directory."""
@@ -117,6 +142,8 @@ class TrashedPath(object):
         # some files named like "foo_100", a situation could arise in
         # which they failed to get trashed because of naming
         # conflicts.
+
+        # TODO: Rewrite using Path
 
         tries = 0
         while self.bin.item_exists(self.basename):
@@ -185,6 +212,18 @@ class TrashedPath(object):
                 trashinfo.write(f)
         except:
             raise Exception("Unable to write trashinfo file: %s", self.info_file)
+
+    def delete(self):
+        "Delete file from trash bin."
+
+        # Delete underlying file before deleting .trashinfo file, so
+        # if it fails for some reason, the .trashinfo file will
+        # remain, avoiding "orphan" files in the trash
+        self.info_file.unlink()
+        log.debug("Deleted: %s", self.info_file)
+
+        self.trashed_path.unlink()
+        log.debug("Deleted: %s", self.trashed_path)
 
     def restore(self, dest_path=None):
         """Restore a path from the trash to its original location.  If
