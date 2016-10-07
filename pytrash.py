@@ -138,7 +138,7 @@ class TrashedPath(object):
     def _read_trashinfo_file(self):
         """Read .trashinfo file and set object properties."""
 
-        trashinfo = ConfigParser()
+        trashinfo = ConfigParser(interpolation=None)
 
         # Read file
         try:
