@@ -6,7 +6,7 @@ import logging as log
 import re
 
 from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from time import mktime
 
@@ -20,7 +20,13 @@ TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 # * Classes
 
+class InvalidTrashinfoFile(Exception):
+    pass
+
 class InvalidTrashBin(Exception):
+    pass
+
+class OrphanTrashinfoFile(Exception):
     pass
 
 class TrashBin(object):
@@ -47,25 +53,13 @@ class TrashBin(object):
                 self.info_path.is_dir()):
             raise InvalidTrashBin("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
-    # def item_exists(self, name):
-    #     """Return True if a file or directory _name_ exists in the trash bin.
-
-    #     Checks both "Trash/files/_name_" and "Trash/info/_name_.trashinfo" paths.
-    #     """
-
-    #     if all(
-    #     for test_path in [self.files_path / name,
-    #                       self.info_path / "%s.trashinfo".format(name)]:
-    #         if (test_path):
-    #             return True
-
-    #     return False
-
     def empty(self, trashed_before=None):
         """Delete items from trash bin.
 
-        trashed_before: datetime.datetime object.  Items trashed
-        before this will be deleted.
+        trashed_before: Either a datetime.datetime object or a string
+                        parseable by parsedatetime.  Items trashed
+                        before this will be deleted.
+
         """
 
         if not self.items:
@@ -108,7 +102,7 @@ class TrashBin(object):
         "Convert date string to a datetime object using parsedatetime.Calendar()."
 
         # It's a shame that such a great library like parsedatetime
-        # didn't go the extra inch and provide a decent API to get a
+        # didn't go the extra inch and provide a decent APO to get a
         # datetime object out of it.
         return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
@@ -183,22 +177,31 @@ class TrashedPath(object):
         log.debug("Renamed %s times", tries)
 
     def _read_trashinfo_file(self):
-        """Read .trashinfo file and set object properties."""
+        """Read .trashinfo file and set item attributes."""
 
-        trashinfo = ConfigParser(interpolation=None)
+        parser = ConfigParser(interpolation=None)
 
-        # Read file
         try:
-            trashinfo.read(str(self.info_file))
-            trashinfo = trashinfo[TRASHINFO_SECTION_HEADER]
+            # Read file and load attributes
+            parser.read(str(self.info_file))
+            trashinfo = parser[TRASHINFO_SECTION_HEADER]
+
             self.original_path = Path(trashinfo['path'])
             self.deleted_path = self.bin.files_path / self.info_file.stem
             self.date_trashed = datetime.strptime(trashinfo['deletiondate'], TRASHINFO_DATE_FORMAT)
-        except (ParsingError, NoSectionError, NoOptionError) as e:
-            log.warning("trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
-            raise
 
-        self.trashed = True
+        except (ParsingError, NoSectionError, NoOptionError) as e:
+            raise InvalidTrashinfoFile(".trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
+
+        else:
+            # Read succeeded; check underlying file
+
+            if self.deleted_path.exists():
+                # Underlying file exists in trash
+                self.trashed = True
+            else:
+                # Orphan .trashinfo file
+                raise OrphanTrashinfoFile("Underlying file not found for: %s", self.info_file)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
@@ -227,7 +230,7 @@ class TrashedPath(object):
             raise Exception("Unable to write trashinfo file: %s", self.info_file)
 
     def delete(self):
-        "Delete file from trash bin."
+        "Delete item from trash bin."
 
         # Delete underlying file before deleting .trashinfo file, so
         # if it fails for some reason, the .trashinfo file will
@@ -239,9 +242,9 @@ class TrashedPath(object):
         log.debug("Deleted: %s", self.trashed_path)
 
     def restore(self, dest_path=None):
-        """Restore a path from the trash to its original location.  If
-        _dest_path_ is given, restore to there instead.
-        """
+        """Restore item to its original location.
+
+        If _dest_path_ is given, restore to there instead."""
 
         # Be careful not to overwrite existing files when using
         # os.path.rename! shutil.move might be useful, but it's
@@ -259,7 +262,9 @@ class TrashedPath(object):
         pass
 
     def trash(self):
-        """Write .trashinfo file, then move the path to the trash."""
+        """Trash item in trash bin.
+
+        Writes .trashinfo file, then moves path to trash bin."""
 
         # Rename if necessary
         self._change_basename_if_necessary()
