@@ -6,7 +6,7 @@ import logging as log
 import re
 
 from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # * Constants
@@ -56,7 +56,7 @@ class TrashBin(object):
 
     #     return False
 
-    def list_items(self):
+    def list_items(self, older_than=None):
         """List items in trash bin.
 
         Trashed directories are not descended into."""
@@ -64,14 +64,22 @@ class TrashBin(object):
         if not self.files:
             self._read_info_files()
 
-        print(self.files)
+        if older_than:
+            delta = timedelta(days=30)
+            now = datetime.now()
+            for f in sorted(self.files, key=lambda i: i.date_trashed):
+                if now - f.date_trashed > delta:
+                    print("{}: {}".format(f.date_trashed, f.original_path))
+
+        else:
+            print(self.files)
 
     def _read_info_files(self):
         """Read .trashinfo files in bin and populate list of files."""
 
         for f in self.info_path.glob("*.trashinfo"):
             try:
-                self.files.append(TrashedPath(info_file=f))
+                self.files.append(TrashedPath(bin=self, info_file=f))
             except Exception:
                 raise Exception("sigh")
             else:
@@ -83,7 +91,6 @@ class TrashedPath(object):
     """Represents a trashed (or to-be-trashed) file or directory."""
 
     def __init__(self, bin=None, path=None, info_file=None):
-        # TODO: Should I pass this in as an argument instead?
         self.bin = bin
 
         self.original_path = None
@@ -143,8 +150,10 @@ class TrashedPath(object):
         # Read file
         try:
             trashinfo.read(str(self.info_file))
-            self.original_path = trashinfo.get(TRASHINFO_SECTION_HEADER, 'path')
-            self.date_trashed = datetime.strptime(trashinfo.get(TRASHINFO_SECTION_HEADER, 'deletiondate'), TRASHINFO_DATE_FORMAT)
+            trashinfo = trashinfo[TRASHINFO_SECTION_HEADER]
+            self.original_path = Path(trashinfo['path'])
+            self.deleted_path = self.bin.files_path / self.info_file.stem
+            self.date_trashed = datetime.strptime(trashinfo['deletiondate'], TRASHINFO_DATE_FORMAT)
         except (ParsingError, NoSectionError, NoOptionError) as e:
             log.warning("trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
             raise
@@ -163,6 +172,8 @@ class TrashedPath(object):
             raise Exception("Trashinfo file already exists: ", self.info_file)
 
         # Setup trashinfo
+        # FIXME: update for py3 configparser
+
         trashinfo = SafeConfigParser()
         trashinfo.add_section(TRASHINFO_SECTION_HEADER)
         trashinfo.set(TRASHINFO_SECTION_HEADER, 'Path', self.path)
