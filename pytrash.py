@@ -54,7 +54,7 @@ class TrashBin(object):
             raise Exception("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
     @app.cmd
-    @app.cmd_arg('--trashed-before', type=str,
+    @app.cmd_arg('--trashed-before',
                  help="Empty items trashed before this date. Date may be given in many formats,"
                  "including natural language like \"1 month ago\".")
     def empty(self=None, trashed_before=None):
@@ -66,6 +66,8 @@ class TrashBin(object):
 
         """
 
+        print(trashed_before)
+
         if not self:
             self = TrashBin()
 
@@ -76,7 +78,7 @@ class TrashBin(object):
             raise Exception("trashed_before is required right now.")
 
         # Convert relative date string to datetime object
-        trashed_before = self._date_string_to_datetime(trashed_before)
+        trashed_before = date_string_to_datetime(trashed_before)
 
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
@@ -96,7 +98,7 @@ class TrashBin(object):
 
         if trashed_before:
             # Convert relative date string to datetime object
-            trashed_before = self._date_string_to_datetime(trashed_before)
+            trashed_before = date_string_to_datetime(trashed_before)
 
             for f in sorted(self.items, key=lambda i: i.date_trashed):
                 if f.date_trashed < trashed_before:
@@ -104,14 +106,6 @@ class TrashBin(object):
         else:
             # Print all items
             print(self.items)
-
-    def _date_string_to_datetime(s):
-        "Convert date string to a datetime object using parsedatetime.Calendar()."
-
-        # It's a shame that such a great library like parsedatetime
-        # didn't go the extra inch and provide a decent API to get a
-        # datetime object out of it.
-        return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
     def _read_info_files(self):
         """Read .trashinfo files in bin and populate list of files."""
@@ -290,6 +284,17 @@ class TrashedPath(object):
         # _change_basename_if_necessary() should take care of this. Of
         # course, there's still a chance of a race condition, but if
         # os.path.rename overwrites, is it possible to avoid this?
+
+# * Functions
+
+def date_string_to_datetime(s):
+    "Convert date string to a datetime object using parsedatetime.Calendar()."
+
+    # It's a shame that such a great library like parsedatetime
+    # didn't go the extra inch and provide a decent API to get a
+    # datetime object out of it.
+    return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
+
 
 if __name__ == "__main__":
     app.run()
