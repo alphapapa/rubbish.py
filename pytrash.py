@@ -20,15 +20,6 @@ TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 # * Classes
 
-class InvalidTrashinfoFile(Exception):
-    pass
-
-class InvalidTrashBin(Exception):
-    pass
-
-class OrphanTrashinfoFile(Exception):
-    pass
-
 class TrashBin(object):
     """Represents an XDG trash bin."""
 
@@ -51,7 +42,7 @@ class TrashBin(object):
         # Verify dirs exist
         if not (self.files_path.is_dir() and
                 self.info_path.is_dir()):
-            raise InvalidTrashBin("Path does not appear to be a valid XDG trash bin: %s", self.path)
+            raise Exception("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
     def empty(self, trashed_before=None):
         """Delete items from trash bin.
@@ -102,7 +93,7 @@ class TrashBin(object):
         "Convert date string to a datetime object using parsedatetime.Calendar()."
 
         # It's a shame that such a great library like parsedatetime
-        # didn't go the extra inch and provide a decent APO to get a
+        # didn't go the extra inch and provide a decent API to get a
         # datetime object out of it.
         return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
@@ -191,7 +182,7 @@ class TrashedPath(object):
             self.date_trashed = datetime.strptime(trashinfo['deletiondate'], TRASHINFO_DATE_FORMAT)
 
         except (ParsingError, NoSectionError, NoOptionError) as e:
-            raise InvalidTrashinfoFile(".trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
+            raise Exception(".trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
 
         else:
             # Read succeeded; check underlying file
@@ -201,7 +192,7 @@ class TrashedPath(object):
                 self.trashed = True
             else:
                 # Orphan .trashinfo file
-                raise OrphanTrashinfoFile("Underlying file not found for: %s", self.info_file)
+                raise Exception("Underlying file not found for: %s", self.info_file)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
