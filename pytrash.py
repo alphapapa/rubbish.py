@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from time import mktime
 
-import aaargh
+import click
 import hurry.filesize
 import parsedatetime
 
@@ -19,10 +19,6 @@ import parsedatetime
 
 TRASHINFO_SECTION_HEADER = 'Trash Info'
 TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
-
-# * Setup aaargh
-
-app = aaargh.App(description="pytrash")
 
 # * Classes
 
@@ -53,10 +49,6 @@ class TrashBin(object):
                 self.info_path.is_dir()):
             raise Exception("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
-    @app.cmd
-    @app.cmd_arg('--trashed-before',
-                 help="Empty items trashed before this date. Date may be given in many formats,"
-                 "including natural language like \"1 month ago\".")
     def empty(self=None, trashed_before=None):
         """Delete items from trash bin.
 
@@ -295,6 +287,19 @@ def date_string_to_datetime(s):
     # datetime object out of it.
     return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
+# * Setup Click
+
+@click.group()
+def cli():
+    pass
+
+@click.command()
+@click.option('--trashed-before', type=str,
+                 help="Empty items trashed before this date. Date may be given in many formats, "
+                 "including natural language like \"1 month ago\".")
+def empty(bin=TrashBin(), trashed_before=None):
+    bin.empty(trashed_before=trashed_before)
 
 if __name__ == "__main__":
-    app.run()
+    cli.add_command(empty)
+    cli()
