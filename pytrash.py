@@ -4,12 +4,14 @@
 
 import logging as log
 import re
+import os
 
 from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
 from datetime import datetime
 from pathlib import Path
 from time import mktime
 
+import aaargh
 import hurry.filesize
 import parsedatetime
 
@@ -18,12 +20,19 @@ import parsedatetime
 TRASHINFO_SECTION_HEADER = 'Trash Info'
 TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
+# * Setup aaargh
+
+app = aaargh.App(description="pytrash")
+
 # * Classes
+
+class OrphanTrashinfoFile(Exception):
+    pass
 
 class TrashBin(object):
     """Represents an XDG trash bin."""
 
-    def __init__(self, path):
+    def __init__(self, path=os.path.expanduser("~/.local/share/Trash")):
         self.path = Path(path)
         self.files_path = self.path / "files"
         self.info_path = self.path / "info"
@@ -44,7 +53,11 @@ class TrashBin(object):
                 self.info_path.is_dir()):
             raise Exception("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
-    def empty(self, trashed_before=None):
+    @app.cmd
+    @app.cmd_arg('--trashed-before', type=str,
+                 help="Empty items trashed before this date. Date may be given in many formats,"
+                 "including natural language like \"1 month ago\".")
+    def empty(self=None, trashed_before=None):
         """Delete items from trash bin.
 
         trashed_before: Either a datetime.datetime object or a string
@@ -52,6 +65,9 @@ class TrashBin(object):
                         before this will be deleted.
 
         """
+
+        if not self:
+            self = TrashBin()
 
         if not self.items:
             self._read_info_files()
@@ -103,8 +119,8 @@ class TrashBin(object):
         for f in self.info_path.glob("*.trashinfo"):
             try:
                 self.items.append(TrashedPath(bin=self, info_file=f))
-            except Exception:
-                raise Exception("sigh")
+            except OrphanTrashinfoFile as e:
+                log.warning(e)
             else:
                 log.debug("Read info file: %s", f)
 
@@ -167,7 +183,7 @@ class TrashedPath(object):
 
         log.debug("Renamed %s times", tries)
 
-    def _read_trashinfo_file(self):
+    def _read_trashinfo_file(self, check_orphan=False):
         """Read .trashinfo file and set item attributes."""
 
         parser = ConfigParser(interpolation=None)
@@ -186,13 +202,13 @@ class TrashedPath(object):
 
         else:
             # Read succeeded; check underlying file
-
-            if self.deleted_path.exists():
-                # Underlying file exists in trash
-                self.trashed = True
-            else:
-                # Orphan .trashinfo file
-                raise Exception("Underlying file not found for: %s", self.info_file)
+            if check_orphan:
+                if self.deleted_path.exists():
+                    # Underlying file exists in trash
+                    self.trashed = True
+                else:
+                    # Orphan .trashinfo file
+                    raise OrphanTrashinfoFile("Underlying file \"%s\" not found for: %s", self.deleted_path, self.info_file)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
@@ -276,4 +292,4 @@ class TrashedPath(object):
         # os.path.rename overwrites, is it possible to avoid this?
 
 if __name__ == "__main__":
-    trash_bin = TrashBin()
+    app.run()
