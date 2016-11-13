@@ -228,6 +228,9 @@ class TrashedPath(object):
         # Delete underlying file before deleting .trashinfo file, so
         # if it fails for some reason, the .trashinfo file will
         # remain, avoiding "orphan" files in the trash
+
+        # FIXME: Use try/except here
+
         self.info_file.unlink()
         log.debug("Deleted: %s", self.info_file)
 
