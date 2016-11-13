@@ -138,36 +138,20 @@ class TrashedPath(object):
     def _change_basename_if_necessary(self):
         """Rename self.basename if it already exists in the trash bin."""
 
-        # TODO: Consider doing the suffix differently. If there were
-        # some files named like "foo_100", a situation could arise in
-        # which they failed to get trashed because of naming
-        # conflicts.
-
         # TODO: Rewrite using Path
 
-        tries = 0
-        while self.bin.item_exists(self.basename):
-            log.debug("Path exists in trash: ", self.basename)
+        if self.bin.item_exists(self.basename):
+            suffix = 0
 
-            if tries == 100:
-                raise Exception("Tried 100 names.  That seems like too many.")
+            while self.bin.item_exists(self.basename + "_%s" % suffix):
+                suffix += 1
 
-            # Get "_1"-like suffix
-            match = re.search('^(.*)_([0-9]+)$', self.basename)
-            if match:
-                # Increment existing _number suffix
-                name_without_suffix = match.group(0)
-                number = int(match.group(1))
-                number += 1
-                self.basename = "%s_%s" % (name_without_suffix, number)
-            else:
-                # Add suffix
-                self.basename = "%s_1" % self.basename
+                if suffix == 100:
+                    raise Exception("Tried 100 suffixes for file: %s", self.basename)
 
-            log.debug("Trying new basename: ", self.basename)
-            tries += 1
+            log.debug("Using suffix %s for file:", "_%s" % suffix, self.basename)
 
-        log.debug("Renamed %s times", tries)
+            self.basename = self.basename + "_%s" % suffix
 
     def _read_trashinfo_file(self, check_orphan=False):
         """Read .trashinfo file and set item attributes."""
