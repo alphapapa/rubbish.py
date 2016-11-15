@@ -307,6 +307,10 @@ def cli(verbose):
 
     log.basicConfig(level=LOG_LEVEL, format="%(levelname)s: %(message)s")
 
+# * Commands
+
+# ** empty
+
 @click.command()
 @click.option('--trashed-before', type=str,
                  help="Empty items trashed before this date. Date may be given in many formats, "
