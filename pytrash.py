@@ -72,6 +72,7 @@ class TrashBin(object):
         # Convert relative date string to datetime object
         trashed_before = date_string_to_datetime(trashed_before)
 
+        # FIXME: This seems to be inaccurate compared to du
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
             if item.date_trashed < trashed_before:
