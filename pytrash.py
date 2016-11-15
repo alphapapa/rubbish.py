@@ -210,13 +210,19 @@ class TrashedPath(object):
         # if it fails for some reason, the .trashinfo file will
         # remain, avoiding "orphan" files in the trash
 
-        # FIXME: Use try/except here
+        # Delete underlying file
+        try:
+            self.trashed_path.unlink()
+            log.debug("Deleted: %s", self.trashed_path)
+        except Exception as e:
+            log.warning("Unable to delete file from trash bin: %s: %s", self.trashed_path, e.msg)
 
-        self.info_file.unlink()
-        log.debug("Deleted: %s", self.info_file)
-
-        self.trashed_path.unlink()
-        log.debug("Deleted: %s", self.trashed_path)
+        # Delete info file
+        try:
+            self.info_file.unlink()
+            log.debug("Deleted: %s", self.info_file)
+        except Exception as e:
+            log.warning("Unable to delete file from trash bin: %s: %s", self.info_file, e.msg)
 
     def restore(self, dest_path=None):
         """Restore item to its original location.
