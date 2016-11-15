@@ -336,14 +336,10 @@ def date_string_to_datetime(s):
 def cli(verbose):
 
     # Setup logging
-    #  logger = log.getLogger("pytrash")
-
     if verbose >= 1:
         LOG_LEVEL = log.DEBUG
     else:
         LOG_LEVEL = log.WARNING
-
-    #  logger.setLevel(LOG_LEVEL)
 
     log.basicConfig(level=LOG_LEVEL, format="%(levelname)s: %(message)s")
 
