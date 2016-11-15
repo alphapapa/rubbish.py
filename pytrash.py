@@ -292,8 +292,20 @@ def date_string_to_datetime(s):
 # * Setup Click
 
 @click.group()
-def cli():
-    pass
+@click.option('-v', '--verbose', count=True)
+def cli(verbose):
+
+    # Setup logging
+    #  logger = log.getLogger("pytrash")
+
+    if verbose >= 1:
+        LOG_LEVEL = log.DEBUG
+    else:
+        LOG_LEVEL = log.WARNING
+
+    #  logger.setLevel(LOG_LEVEL)
+
+    log.basicConfig(level=LOG_LEVEL, format="%(levelname)s: %(message)s")
 
 @click.command()
 @click.option('--trashed-before', type=str,
