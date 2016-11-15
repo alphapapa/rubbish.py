@@ -99,6 +99,14 @@ class TrashBin(object):
             # Print all items
             print(self.items)
 
+    def path_exists(self, path):
+        """Return True if path exists in trash bin's files/ subdirectory."""
+
+        if self.files_path / path.exists():
+            return True
+        else:
+            return False
+
     def _read_info_files(self):
         """Read .trashinfo files in bin and populate list of files."""
 
@@ -140,10 +148,10 @@ class TrashedPath(object):
 
         # TODO: Rewrite using Path?
 
-        if self.bin.item_exists(self.basename):
+        if self.bin.path_exists(self.basename):
             suffix = 0
 
-            while self.bin.item_exists(self.basename + "_%s" % suffix):
+            while self.bin.path_exists(self.basename + "_%s" % suffix):
                 suffix += 1
 
                 if suffix == 100:
