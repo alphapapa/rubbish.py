@@ -253,14 +253,18 @@ class TrashedPath(object):
         # Delete underlying file
         try:
             self.trashed_path.unlink()
+
             log.debug("Deleted: %s", self.trashed_path)
+
         except Exception as e:
             log.warning("Unable to delete file from trash bin: %s: %s", self.trashed_path, e.msg)
 
         # Delete info file
         try:
             self.info_file.unlink()
+
             log.debug("Deleted: %s", self.info_file)
+
         except Exception as e:
             log.warning("Unable to delete file from trash bin: %s: %s", self.info_file, e.msg)
 
