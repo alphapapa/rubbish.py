@@ -157,7 +157,9 @@ class TrashedPath(object):
 
         if path:
             self.original_path = Path(path)
+
         if info_file:
+            # Probably already a trashed file
             if isinstance(info_file, str):
                 self.info_file = Path(info_file)
             elif isinstance(info_file, Path):
