@@ -166,10 +166,8 @@ class TrashedPath(object):
             self._read_trashinfo_file()
             self.trashed_path = self.info_file.parent.parent / "files" / self.info_file.stem
 
-    def _change_basename_if_necessary(self):
-        """Rename self.basename if it already exists in the trash bin."""
-
-        # TODO: Rewrite using Path?
+    def _rename_if_necessary(self):
+        """Rename self.trashed_path if a file by that name already exists in the trash bin."""
 
         if self.bin.item_exists(self.original_path.name):
             suffix = 1
@@ -294,7 +292,7 @@ class TrashedPath(object):
         log.debug('Preparing to trash "%s" as "%s"', self.original_path, self.trashed_path)
 
         # Rename if necessary
-        self._change_basename_if_necessary()
+        self._rename_if_necessary()
 
         # Set date_trashed
         self.date_trashed = datetime.utcnow()
