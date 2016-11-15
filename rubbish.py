@@ -141,6 +141,7 @@ class TrashBin(object):
             except OrphanTrashinfoFile:
                 log.warning('.trashinfo file appears to be orphaned: %s', f)
             except Exception:
+                # More info is printed with log.debug from TrashedPath._read_trashinfo_file
                 log.warning('Unable to read info file: %s', f)
             else:
                 log.debug("Read info file: %s", f)
@@ -212,7 +213,7 @@ class TrashedPath(object):
             self.date_trashed = datetime.strptime(trashinfo['DeletionDate'], TRASHINFO_DATE_FORMAT)
 
         except Exception as e:
-            log.debug('.trashinfo file appears invalid or empty ("%s"): %s', e, self.info_file)
+            log.debug('.trashinfo file appears invalid or empty (%s): %s', e, self.info_file)
             raise e
 
         else:
