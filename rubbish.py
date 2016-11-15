@@ -88,8 +88,12 @@ class TrashBin(object):
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
             if item.date_trashed < trashed_before:
-                total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
-                print("Would delete: {}: {}".format(item.date_trashed, item.original_path))
+                try:
+                    total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+                except Exception as e:
+                    log.warning('Unable to stat file: %s: %s', item.trashed_path, e)
+                else:
+                    log.debug("Would delete: {}: {}".format(item.date_trashed, item.original_path))
 
         print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
 
@@ -134,8 +138,10 @@ class TrashBin(object):
         for f in self.info_path.glob("*.trashinfo"):
             try:
                 self.items.append(TrashedPath(bin=self, info_file=f))
-            except OrphanTrashinfoFile as e:
-                log.warning(e)
+            except OrphanTrashinfoFile:
+                log.warning('.trashinfo file appears to be orphaned: %s', f)
+            except Exception:
+                log.warning('Unable to read info file: %s', f)
             else:
                 log.debug("Read info file: %s", f)
 
@@ -165,8 +171,12 @@ class TrashedPath(object):
             elif isinstance(info_file, Path):
                 self.info_file = info_file
 
-            self._read_trashinfo_file()
-            self.trashed_path = self.info_file.parent.parent / "files" / self.info_file.stem
+            try:
+                self._read_trashinfo_file()
+            except Exception as e:
+                raise Exception('Unable to read .trashinfo file ("%s"): %s', e, self.info_file)
+            else:
+                self.trashed_path = self.info_file.parent.parent / "files" / self.info_file.stem
 
     def _rename_if_necessary(self):
         """Rename self.trashed_path if a file by that name already exists in the trash bin."""
@@ -201,8 +211,9 @@ class TrashedPath(object):
             self.deleted_path = self.bin.files_path / self.info_file.stem
             self.date_trashed = datetime.strptime(trashinfo['DeletionDate'], TRASHINFO_DATE_FORMAT)
 
-        except (ParsingError, NoSectionError, NoOptionError) as e:
-            raise Exception(".trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
+        except Exception as e:
+            log.debug('.trashinfo file appears invalid or empty ("%s"): %s', e, self.info_file)
+            raise e
 
         else:
             # Read succeeded; check underlying file
