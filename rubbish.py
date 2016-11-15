@@ -363,7 +363,7 @@ def empty(bin=TrashBin(), trashed_before=None):
 @click.command()
 @click.argument('paths', type=click.Path(exists=True), nargs=-1)
 def trash(paths, bin=None):
-    """Move path to trash bin."""
+    """Move paths to trash bin."""
 
     # Instantiate bin once
     bin = TrashBin()
