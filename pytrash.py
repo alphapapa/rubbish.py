@@ -138,7 +138,7 @@ class TrashedPath(object):
     def _change_basename_if_necessary(self):
         """Rename self.basename if it already exists in the trash bin."""
 
-        # TODO: Rewrite using Path
+        # TODO: Rewrite using Path?
 
         if self.bin.item_exists(self.basename):
             suffix = 0
