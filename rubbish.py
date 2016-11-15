@@ -342,7 +342,7 @@ def date_string_to_datetime(s):
 def cli(verbose):
 
     # Setup logging
-    if verbose >= 1:
+    if verbose >= 2:
         LOG_LEVEL = log.DEBUG
     else:
         LOG_LEVEL = log.WARNING
