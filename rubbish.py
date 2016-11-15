@@ -217,6 +217,8 @@ class TrashedPath(object):
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
 
+        # TODO: Do I need to URL-escape the path?
+
         # Make trashinfo file path if it doesn't exist
         if not self.info_file:
             self.info_file = self.bin.info_path / "{}.trashinfo".format(self.trashed_path.name)
