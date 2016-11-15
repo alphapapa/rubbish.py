@@ -68,7 +68,6 @@ class TrashBin(object):
         trashed_before: Either a datetime.datetime object or a string
                         parseable by parsedatetime.  Items trashed
                         before this will be deleted.
-
         """
 
         print(trashed_before)
