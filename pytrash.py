@@ -258,6 +258,9 @@ class TrashedPath(object):
 
         Writes .trashinfo file, then moves path to trash bin."""
 
+        # Write .trashinfo file first, so if it fails, we don't trash
+        # the file, avoiding "orphaned" files in the bin.
+
         # Rename if necessary
         self._change_basename_if_necessary()
 
