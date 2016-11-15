@@ -197,9 +197,9 @@ class TrashedPath(object):
             parser.read(str(self.info_file))
             trashinfo = parser[TRASHINFO_SECTION_HEADER]
 
-            self.original_path = Path(trashinfo['path'])
+            self.original_path = Path(trashinfo['Path'])
             self.deleted_path = self.bin.files_path / self.info_file.stem
-            self.date_trashed = datetime.strptime(trashinfo['deletiondate'], TRASHINFO_DATE_FORMAT)
+            self.date_trashed = datetime.strptime(trashinfo['DeletionDate'], TRASHINFO_DATE_FORMAT)
 
         except (ParsingError, NoSectionError, NoOptionError) as e:
             raise Exception(".trashinfo file appears invalid or empty: %s, %s", e.message, self.info_file)
