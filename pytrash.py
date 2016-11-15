@@ -22,6 +22,19 @@ TRASHINFO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 # * Classes
 
+class CaseConfigParser(ConfigParser):
+    """Case-sensitive version of ConfigParser."""
+
+    # This is necessary because some software that uses the trash bin
+    # requires that the keys in the ini-style .trashinfo files be
+    # capitalized in CamelCase.  This is not smart--has no one heard
+    # of Postel anymore?!--but that's how it is.
+
+    # See <http://stackoverflow.com/questions/1611799/preserve-case-in-configparser>
+
+    def optionxform(self, optionstr):
+        return optionstr
+
 class OrphanTrashinfoFile(Exception):
     pass
 
@@ -178,7 +191,7 @@ class TrashedPath(object):
     def _read_trashinfo_file(self, check_orphan=False):
         """Read .trashinfo file and set item attributes."""
 
-        parser = ConfigParser(interpolation=None)
+        parser = CaseConfigParser(interpolation=None)
 
         try:
             # Read file and load attributes
@@ -214,7 +227,7 @@ class TrashedPath(object):
             raise Exception("Trashinfo file already exists: %s" % self.info_file)
 
         # Setup config parser
-        parser = ConfigParser(interpolation=None)
+        parser = CaseConfigParser(interpolation=None)
         parser[TRASHINFO_SECTION_HEADER] = {}
         trashinfo = parser[TRASHINFO_SECTION_HEADER]
         trashinfo['Path'] = str(self.original_path)
