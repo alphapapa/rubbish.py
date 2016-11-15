@@ -204,7 +204,7 @@ class TrashedPath(object):
             raise Exception("Unable to write trashinfo file: %s" % self.info_file)
 
     def delete(self):
-        "Delete item from trash bin."
+        "Delete item from trash bin, including underlying file/directory and .trashinfo file."
 
         # Delete underlying file before deleting .trashinfo file, so
         # if it fails for some reason, the .trashinfo file will
