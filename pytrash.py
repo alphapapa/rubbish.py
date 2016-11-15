@@ -314,6 +314,8 @@ class TrashedPath(object):
             self.original_path.rename(self.trashed_path)
         except Exception as e:
             log.exception("Unable to move item \"%s\" to trash \"%s\": %s", self.original_path, self.trashed_path, e.msg)
+        else:
+            log.debug('Trashed "%s" as: "%s"', self.original_path, self.trashed_path)
 
 
 # * Functions
