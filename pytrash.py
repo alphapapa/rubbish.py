@@ -189,7 +189,7 @@ class TrashedPath(object):
 
         # Verify trashinfo file doesn't exist
         if self.info_file.exists:
-            raise Exception("Trashinfo file already exists: ", self.info_file)
+            raise Exception("Trashinfo file already exists: %s" % self.info_file)
 
         # Setup trashinfo
         # FIXME: update for py3 configparser
@@ -204,7 +204,7 @@ class TrashedPath(object):
             with open(self.info_file, 'wb') as f:
                 trashinfo.write(f)
         except:
-            raise Exception("Unable to write trashinfo file: %s", self.info_file)
+            raise Exception("Unable to write trashinfo file: %s" % self.info_file)
 
     def delete(self):
         "Delete item from trash bin."
