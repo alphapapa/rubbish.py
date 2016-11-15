@@ -191,17 +191,14 @@ class TrashedPath(object):
         if self.info_file.exists:
             raise Exception("Trashinfo file already exists: %s" % self.info_file)
 
-        # Setup trashinfo
-        # FIXME: update for py3 configparser
-
-        trashinfo = SafeConfigParser()
-        trashinfo.add_section(TRASHINFO_SECTION_HEADER)
-        trashinfo.set(TRASHINFO_SECTION_HEADER, 'Path', self.path)
-        trashinfo.set(TRASHINFO_SECTION_HEADER, 'DeletionDate', TRASHINFO_DATE_FORMAT % self.date_trashed)
+        # Setup config parser
+        trashinfo = ConfigParser(interpolation=None)[TRASHINFO_SECTION_HEADER]
+        trashinfo['Path'] = self.path
+        trashinfo['DeletionDate'] = TRASHINFO_DATE_FORMAT % self.date_trashed
 
         # Write the file
         try:
-            with open(self.info_file, 'wb') as f:
+            with open(self.info_file, 'w') as f:
                 trashinfo.write(f)
         except:
             raise Exception("Unable to write trashinfo file: %s" % self.info_file)
