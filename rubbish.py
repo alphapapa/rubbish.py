@@ -93,7 +93,7 @@ class TrashBin(object):
                 except Exception as e:
                     log.warning('Unable to stat file: %s: %s', item.trashed_path, e)
                 else:
-                    log.debug("Would delete: {}: {}".format(item.date_trashed, item.original_path))
+                    log.debug("Would delete: %s: %s", item.date_trashed, item.original_path)
 
         print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
 
