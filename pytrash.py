@@ -302,6 +302,19 @@ def cli():
 def empty(bin=TrashBin(), trashed_before=None):
     bin.empty(trashed_before=trashed_before)
 
+# ** trash
+
+@click.command()
+@click.argument('path', type=click.Path(exists=True))
+def trash(path, bin=None):
+    """Move path to trash bin."""
+
+    TrashedPath(path).trash()
+
+# * Run cli
+
 if __name__ == "__main__":
     cli.add_command(empty)
+    cli.add_command(trash)
+
     cli()
