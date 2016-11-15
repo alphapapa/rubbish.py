@@ -100,11 +100,19 @@ class TrashBin(object):
             # Print all items
             print(self.items)
 
-    def path_exists(self, path):
-        """Return True if path exists in trash bin's files/ subdirectory."""
+    def item_exists(self, filename):
+        """Return True if filename exists in trash bin's files/ subdirectory."""
 
-        if self.files_path / path.exists():
+        if Path(self.files_path / filename).exists():
+            log.debug("Trashed path exists: %s", self.files_path / filename)
+
             return True
+
+        elif Path(self.info_path / ("%s.trashinfo" % filename)).exists():
+            log.debug("Info file exists: %s", self.info_path / ("%s.trashinfo" % filename))
+
+            return True
+
         else:
             return False
 
@@ -124,11 +132,13 @@ class TrashBin(object):
 class TrashedPath(object):
     """Represents a trashed (or to-be-trashed) file or directory."""
 
-    def __init__(self, bin=None, path=None, info_file=None):
-        self.bin = bin
+    def __init__(self, path=None, bin=None, info_file=None):
+        self.bin = bin if bin else TrashBin()
 
+        self.info_file = None
         self.original_path = None
         self.trashed = False
+        self.trashed_path = None
 
         # TODO: Check FreeDesktop.org specs to see if timezone/UTC is specified.
         self.date_trashed = None  # datetime object in UTC
@@ -149,18 +159,21 @@ class TrashedPath(object):
 
         # TODO: Rewrite using Path?
 
-        if self.bin.path_exists(self.basename):
-            suffix = 0
+        if self.bin.item_exists(self.original_path.name):
+            suffix = 1
+            new_name = self.original_path.name + "_%s" % suffix
 
-            while self.bin.path_exists(self.basename + "_%s" % suffix):
+            while self.bin.item_exists(new_name):
                 suffix += 1
 
                 if suffix == 100:
-                    raise Exception("Tried 100 suffixes for file: %s", self.basename)
+                    raise Exception("Tried 100 suffixes for file: %s", self.original_path.name)
 
-            log.debug("Using suffix %s for file:", "_%s" % suffix, self.basename)
+                new_name = self.original_path.name + "_%s" % suffix
 
-            self.basename = self.basename + "_%s" % suffix
+            log.debug("Using new name with suffix \"%s\" for file: %s", new_name, self.original_path)
+
+            self.trashed_path = self.trashed_path.with_name(new_name)
 
     def _read_trashinfo_file(self, check_orphan=False):
         """Read .trashinfo file and set item attributes."""
@@ -194,21 +207,23 @@ class TrashedPath(object):
 
         # Make trashinfo file path if it doesn't exist
         if not self.info_file:
-            self.info_file = self.bin.info_path / "%s.trashinfo".format(self.path.name)
+            self.info_file = self.bin.info_path / "{}.trashinfo".format(self.trashed_path.name)
 
         # Verify trashinfo file doesn't exist
-        if self.info_file.exists:
+        if self.info_file.exists():
             raise Exception("Trashinfo file already exists: %s" % self.info_file)
 
         # Setup config parser
-        trashinfo = ConfigParser(interpolation=None)[TRASHINFO_SECTION_HEADER]
-        trashinfo['Path'] = self.path
-        trashinfo['DeletionDate'] = TRASHINFO_DATE_FORMAT % self.date_trashed
+        parser = ConfigParser(interpolation=None)
+        parser[TRASHINFO_SECTION_HEADER] = {}
+        trashinfo = parser[TRASHINFO_SECTION_HEADER]
+        trashinfo['Path'] = str(self.original_path)
+        trashinfo['DeletionDate'] = self.date_trashed.strftime(TRASHINFO_DATE_FORMAT)
 
         # Write the file
         try:
-            with open(self.info_file, 'w') as f:
-                trashinfo.write(f)
+            with self.info_file.open('w') as f:
+                parser.write(f)
         except:
             raise Exception("Unable to write trashinfo file: %s" % self.info_file)
 
@@ -261,6 +276,11 @@ class TrashedPath(object):
         # Write .trashinfo file first, so if it fails, we don't trash
         # the file, avoiding "orphaned" files in the bin.
 
+        # Set trashed path (is this the best place to do this?)
+        self.trashed_path = self.bin.files_path / self.original_path.stem
+
+        log.debug('Preparing to trash "%s" as "%s"', self.original_path, self.trashed_path)
+
         # Rename if necessary
         self._change_basename_if_necessary()
 
@@ -270,14 +290,18 @@ class TrashedPath(object):
         # Write trashinfo file
         self._write_trashinfo_file()
 
-        # TODO: Move path to trash
+        # There seems to be no way to rename a path in Python without
+        # potentially overwriting an existing path, so although we
+        # change the basename if necessary above, there's still a
+        # potential race condition that could cause an existing item
+        # in the bin to be overwritten.
 
-        # TODO: Verify path doesn't already exist
+        # Move path to trash
+        try:
+            self.original_path.rename(self.trashed_path)
+        except Exception as e:
+            log.exception("Unable to move item \"%s\" to trash \"%s\": %s", self.original_path, self.trashed_path, e.msg)
 
-        # Do I need to verify this again here?
-        # _change_basename_if_necessary() should take care of this. Of
-        # course, there's still a chance of a race condition, but if
-        # os.path.rename overwrites, is it possible to avoid this?
 
 # * Functions
 
