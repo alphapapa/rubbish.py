@@ -238,6 +238,8 @@ class TrashedPath(object):
                 parser.write(f)
         except:
             raise Exception("Unable to write trashinfo file: %s" % self.info_file)
+        else:
+            log.debug("Wrote trashinfo file: %s", self.info_file)
 
     def delete(self):
         "Delete item from trash bin, including underlying file/directory and .trashinfo file."
