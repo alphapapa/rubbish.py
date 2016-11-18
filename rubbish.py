@@ -254,7 +254,8 @@ class TrashedPath(object):
             with self.info_file.open('w') as f:
                 parser.write(f)
         except:
-            raise Exception("Unable to write trashinfo file: %s" % self.info_file)
+            log.error("Unable to write trashinfo file: %s" % self.info_file)
+            raise
         else:
             log.debug("Wrote trashinfo file: %s", self.info_file)
 
