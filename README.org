@@ -6,6 +6,29 @@
 
 The =pytrash= / =trash-cli= package works well, but has a few minor bugs, and the code confuses me, so I decided on a fresh start.  Unlike =pytrash=,  =rubbish.py= only supports the standard XDG trash bin, not the earlier directories like =~/.Trash=, =~/.Trash-1000=, etc, and it does not support per-volume trash bins.
 
+** Features
+
+*** Easy date specification
+
+It's easy to specify dates in many formats, including natural language such as =2 months ago= when using the =--trashed-before= option.  This makes it easy to expire files from the trash bin by running, e.g.:
+
+#+BEGIN_SRC sh
+rubbish.py empty --trashed-before "2 months ago"
+rubbish.py empty --trashed-before yesterday
+#+END_SRC
+
+*** Uses good libraries
+
+As much as possible, the best-available Python libraries are used to make writing and maintenance easy.
+
+** TODO:
+
++  [X] Move files/directories to trash
++  [X] List contents of trash bin
++  [ ] Empty bin (currently prints what would be deleted)
++  [ ] Restore items from trash to original location
++  [ ] ...?
+
 ** License
 
 GPLv3+.
