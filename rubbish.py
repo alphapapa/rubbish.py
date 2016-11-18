@@ -177,7 +177,7 @@ class TrashedPath(object):
             except Exception as e:
                 raise Exception('Unable to read .trashinfo file ("%s"): %s', e, self.info_file)
             else:
-                self.trashed_path = self.info_file.parent.parent / "files" / self.info_file.stem
+                log.debug("Read .trashinfo file: %s", self.info_file)
 
     def _rename_if_necessary(self):
         """Rename self.trashed_path if a file by that name already exists in the trash bin."""
@@ -209,7 +209,7 @@ class TrashedPath(object):
             trashinfo = parser[TRASHINFO_SECTION_HEADER]
 
             self.original_path = Path(trashinfo['Path'])
-            self.deleted_path = self.bin.files_path / self.info_file.stem
+            self.trashed_path = self.bin.files_path / self.info_file.stem
             self.date_trashed = datetime.strptime(trashinfo['DeletionDate'], TRASHINFO_DATE_FORMAT)
 
         except Exception as e:
@@ -217,14 +217,17 @@ class TrashedPath(object):
             raise e
 
         else:
-            # Read succeeded; check underlying file
+            log.debug("Read .trashinfo file: %s", self.info_file)
+
             if check_orphan:
-                if self.deleted_path.exists():
+                if self.trashed_path.exists():
                     # Underlying file exists in trash
                     self.trashed = True
+
+                    log.debug("Underlying file confirmed: %s", self.trashed_path)
                 else:
                     # Orphan .trashinfo file
-                    raise OrphanTrashinfoFile("Underlying file \"%s\" not found for: %s", self.deleted_path, self.info_file)
+                    raise OrphanTrashinfoFile("Underlying file \"%s\" not found for: %s", self.trashed_path, self.info_file)
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
