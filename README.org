@@ -1,0 +1,11 @@
+* rubbish.py
+
+/Note: This is a work-in-progress.  Contributions welcome./
+
+=rubbish.py= is a command-line interface to the FreeDesktop.org (XDG) trash bin, stored at =~/.local/share/Trash=.
+
+The =pytrash= / =trash-cli= package works well, but has a few minor bugs, and the code confuses me, so I decided on a fresh start.  Unlike =pytrash=,  =rubbish.py= only supports the standard XDG trash bin, not the earlier directories like =~/.Trash=, =~/.Trash-1000=, etc, and it does not support per-volume trash bins.
+
+** License
+
+GPLv3+.
