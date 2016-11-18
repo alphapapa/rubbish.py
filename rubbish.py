@@ -312,7 +312,7 @@ class TrashedPath(object):
         # the file, avoiding "orphaned" files in the bin.
 
         # Set trashed path (is this the best place to do this?)
-        self.trashed_path = self.bin.files_path / self.original_path.stem
+        self.trashed_path = self.bin.files_path / self.original_path.name
 
         log.debug('Preparing to trash "%s" as "%s"', self.original_path, self.trashed_path)
 
