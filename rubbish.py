@@ -359,8 +359,10 @@ def cli(verbose):
     # Setup logging
     if verbose >= 2:
         LOG_LEVEL = log.DEBUG
-    else:
+    elif verbose == 1:
         LOG_LEVEL = log.WARNING
+    else:
+        LOG_LEVEL = log.ERROR
 
     log.basicConfig(level=LOG_LEVEL, format="%(levelname)s: %(message)s")
 
