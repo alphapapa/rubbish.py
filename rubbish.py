@@ -213,7 +213,8 @@ class TrashedPath(object):
             self.date_trashed = datetime.strptime(trashinfo['DeletionDate'], TRASHINFO_DATE_FORMAT)
 
         except Exception as e:
-            log.debug('.trashinfo file appears invalid or empty (%s): %s', e, self.info_file)
+            # TODO: Should this be an error or a warning?
+            log.warning('.trashinfo file appears invalid or empty (%s): %s', e, self.info_file)
             raise e
 
         else:
@@ -270,7 +271,7 @@ class TrashedPath(object):
         try:
             self.trashed_path.unlink()
         except Exception as e:
-            log.warning("Unable to delete file from trash bin: %s: %s", self.trashed_path, e)
+            log.error("Unable to delete file from trash bin: %s: %s", self.trashed_path, e)
         else:
             log.debug("Deleted: %s", self.trashed_path)
 
@@ -278,7 +279,7 @@ class TrashedPath(object):
         try:
             self.info_file.unlink()
         except Exception as e:
-            log.warning("Unable to delete file from trash bin: %s: %s", self.info_file, e)
+            log.error("Unable to delete file from trash bin: %s: %s", self.info_file, e)
         else:
             log.debug("Deleted: %s", self.info_file)
 
