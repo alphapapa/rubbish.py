@@ -85,6 +85,7 @@ class TrashBin(object):
         trashed_before = date_string_to_datetime(trashed_before)
 
         # FIXME: This seems to be inaccurate compared to du
+        # TODO: Use shutil.disk_usage?
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
             if item.date_trashed < trashed_before:
@@ -300,6 +301,17 @@ class TrashedPath(object):
         # delete an entire subdirectory tree, which is dangerous. I
         # don't know why Python doesn't seem to have some kind of
         # atomic, safe move/rename.
+
+        # Seems like the best way to do it is to use os.link to create
+        # a new hard link to the restored destination, then if it
+        # succeeds, unlink the one in the trash
+
+        # NOTE: This needs to correctly handle cases where the restore
+        # would be to a path on a different filesystem, and cases
+        # where the parent directory to restore to doesn't exist.
+
+        # NOTE: There needs to be a higher-level UI to select the
+        # items to restore.
 
         pass
 
