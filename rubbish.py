@@ -5,6 +5,7 @@
 import logging as log
 import re
 import os
+import shutil
 
 from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
 from datetime import datetime
@@ -358,16 +359,13 @@ class TrashedPath(object):
         # But that obviously won't work across filesystems, so maybe
         # it's not worth it.
 
-        # TODO: Should look at shutil.move() and compare it.
-
         # Move path to trash
         try:
-            # FIXME: Should use shutil.move() instead, because it
-            # handles cross-filesystem moves, and I don't think
-            # pathlib.rename() does.
-            self.original_path.rename(self.trashed_path)
+            shutil.move(self.original_path, self.trashed_path)
         except Exception as e:
             log.error('Unable to move item "%s" to trashed path "%s": %s', self.original_path, self.trashed_path, e)
+
+            # FIXME: Remove trashinfo file if trashing fails
 
             return False
         else:
