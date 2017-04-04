@@ -310,6 +310,16 @@ class TrashedPath(object):
         # would be to a path on a different filesystem, and cases
         # where the parent directory to restore to doesn't exist.
 
+        # NOTE: I guess it probably isn't worth the complexity of
+        # handling cross-filesystem restores and special casing it.
+        # Might as well just move it and accept the minor risk of a
+        # race overwriting an existing file.  On the other hand, we
+        # could make a new hard link on the destination filesystem,
+        # then copy to a temp file, then move it to overwrite the new
+        # hard link, and then delete the file from the trash.  This is
+        # probably the best way to do it.  It only adds a little
+        # complexity to the cross-filesystem restore.
+
         # NOTE: There needs to be a higher-level UI to select the
         # items to restore.
 
@@ -343,8 +353,18 @@ class TrashedPath(object):
         # potential race condition that could cause an existing item
         # in the bin to be overwritten.
 
+        # Actually, it might be possible to make a new hard link to
+        # the file inside the trash bin, then unlink the original.
+        # But that obviously won't work across filesystems, so maybe
+        # it's not worth it.
+
+        # TODO: Should look at shutil.move() and compare it.
+
         # Move path to trash
         try:
+            # FIXME: Should use shutil.move() instead, because it
+            # handles cross-filesystem moves, and I don't think
+            # pathlib.rename() does.
             self.original_path.rename(self.trashed_path)
         except Exception as e:
             log.error('Unable to move item "%s" to trashed path "%s": %s', self.original_path, self.trashed_path, e)
