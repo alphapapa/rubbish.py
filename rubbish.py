@@ -164,6 +164,11 @@ class TrashedPath(object):
         if path:
             self.original_path = Path(path)
 
+            # Get absolute path
+            if not self.original_path.is_absolute():
+                # Prepend current directory
+                self.original_path = os.getcwd() / self.original_path
+
         if info_file:
             # Probably already a trashed file
             if isinstance(info_file, str):
