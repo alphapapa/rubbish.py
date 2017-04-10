@@ -36,9 +36,6 @@ class CaseConfigParser(ConfigParser):
     def optionxform(self, optionstr):
         return optionstr
 
-class OrphanTrashinfoFile(Exception):
-    pass
-
 class TrashBin(object):
     """Represents an XDG trash bin."""
 
@@ -370,6 +367,14 @@ class TrashedPath(object):
             return False
         else:
             log.debug('Trashed "%s" as: "%s"', self.original_path, self.trashed_path)
+
+# ** Exceptions
+
+class NoTrashinfoFilesFoundForPath(Exception):
+    pass
+
+class OrphanTrashinfoFile(Exception):
+    pass
 
 
 # * Functions
