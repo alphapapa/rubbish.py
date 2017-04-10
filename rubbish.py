@@ -358,7 +358,8 @@ class TrashedPath(object):
 
         # Move path to trash
         try:
-            shutil.move(self.original_path, self.trashed_path)
+            # FIXME: Would Path.rename() suffice here, or does that not work across filesystems?
+            shutil.move(self.original_path.as_posix(), self.trashed_path.as_posix())
         except Exception as e:
             log.error('Unable to move item "%s" to trashed path "%s": %s', self.original_path, self.trashed_path, e)
 
