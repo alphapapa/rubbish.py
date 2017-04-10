@@ -516,6 +516,10 @@ def cli(verbose):
 def empty(bin=TrashBin(), trashed_before=None):
     bin.empty(trashed_before=trashed_before)
 
+# ** expire
+
+# TODO: Make an "expire" command that would do what "empty --trashed-before" does.  Much clearer.
+
 # ** show
 
 @click.command()
