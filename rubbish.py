@@ -183,6 +183,56 @@ class TrashedPath(object):
             else:
                 log.debug("Read .trashinfo file: %s", self.info_file)
 
+    def _read_matching_info_file(self):
+        """Find and read .trashinfo file for item's path."""
+
+        # Save path for later
+        path = self.original_path
+        filename = path.name
+
+        # FIXME: If a user accidentally trashes a .trashinfo file, the
+        # resulting "foo.trashinfo.trashinfo" file may cause issues...
+
+        # Find .trashinfo files matching name pattern
+        info_files = list(self.bin.info_path.glob("%s.trashinfo" % filename))
+        info_files.extend(list(self.bin.info_path.glob("%s_*.trashinfo" % filename)))
+
+        # Check result
+        if not info_files:
+            log.critical("No trashinfo files found for path: %s", str(self.original_path))
+
+            return False
+
+        elif len(info_files) == 1:
+            log.debug("Found one .trashinfo file matching filename")
+
+            self.info_file = info_files[0]
+            self._read_trashinfo_file()
+
+            return True
+
+        elif len(info_files) > 1:
+            log.debug("Found multiple .trashinfo files found matching filename")
+
+            # Find ones that match path
+            matching_info_files = []
+
+            for f in info_files:
+                self.info_file = f
+                self._read_trashinfo_file()  # Modifies self.original_path, etc.
+
+                # Verify path
+                if self.original_path == path:
+                    matching_info_files.append(f)
+
+            # Check result
+            if len(matching_info_files) == 1:
+                log.debug("Found matching info file: ", str(self.info_file))
+            elif len(matching_info_files) > 1:
+                raise Exception("Multiple matching info files: ", ", ".join([str(i.name) for i in matching_info_files]))
+            else:
+                raise Exception("No info files found matching path.")
+
     def _rename_if_necessary(self):
         """Rename self.trashed_path if a file by that name already exists in the trash bin."""
 
@@ -233,6 +283,16 @@ class TrashedPath(object):
                 else:
                     # Orphan .trashinfo file
                     raise OrphanTrashinfoFile("Underlying file \"%s\" not found for: %s", self.trashed_path, self.info_file)
+
+    def _remove_trashinfo_file(self):
+        """Remove .trashinfo file from bin."""
+
+        try:
+            self.info_file.unlink()
+        except Exception:
+            log.exception("Can't remove .trashinfo file: %s", str(self.info_file))
+        else:
+            log.debug("Removed .trashinfo file: %s", str(self.info_file))
 
     def _write_trashinfo_file(self):
         """Write .trashinfo file for trashed path."""
@@ -287,7 +347,7 @@ class TrashedPath(object):
         else:
             log.debug("Deleted: %s", self.info_file)
 
-    def restore(self, dest_path=None):
+    def restore(self, dest=None):
         """Restore item to its original location.
 
         If _dest_path_ is given, restore to there instead."""
@@ -326,7 +386,43 @@ class TrashedPath(object):
         # NOTE: There needs to be a higher-level UI to select the
         # items to restore.
 
-        pass
+        path_given = self.original_path
+
+        # Read .trashinfo file for path
+        if not self._read_matching_info_file():
+            return False
+
+        # Verify path matches given path
+        if not self.original_path == path_given:
+            log.critical("Path to restore (\"%s\")differs from original path in matching info file (\"%s\")",
+                         path_given, self.original_path)
+
+            return False
+
+        # Set destination
+        if dest:
+            target_path = Path(dest) / self.original_path.name
+        else:
+            target_path = self.original_path
+
+        # Ensure destination doesn't already exist
+        if target_path.exists():
+            raise Exception("Can't restore because path already exists: %s" % str(target_path))
+
+            return False
+
+        # Move path back
+        try:
+            shutil.move(self.trashed_path.as_posix(), target_path.as_posix())
+        except Exception:
+            log.critical("Can't restore to path: ", target_path)
+            raise
+        else:
+            # Restore complete
+            log.debug("Restored to path: %s", str(target_path))
+
+            # Remove .trashinfo file
+            self._remove_trashinfo_file()
 
     def trash(self):
         """Trash item in trash bin.
@@ -426,6 +522,21 @@ def empty(bin=TrashBin(), trashed_before=None):
 def show(bin=TrashBin()):
     bin.list_items()
 
+# ** restore
+
+@click.command()
+@click.option("--to", type=click.Path(exists=True),
+              help="When given, restore to this directory instead of original location")
+@click.argument('paths', type=click.Path(exists=False), nargs=-1)
+def restore(paths, to=None, bin=None):
+    """Restore paths from trash bin to original location, or to TO when given."""
+
+    # Instantiate bin once
+    bin = TrashBin()
+
+    for path in paths:
+        TrashedPath(path, bin=bin).restore(dest=to)
+
 # ** trash
 
 @click.command()
@@ -443,6 +554,7 @@ def trash(paths, bin=None):
 
 if __name__ == "__main__":
     cli.add_command(empty)
+    cli.add_command(restore)
     cli.add_command(show)
     cli.add_command(trash)
 
