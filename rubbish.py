@@ -113,7 +113,7 @@ class TrashBin(object):
                     print("{}: {}".format(f.date_trashed, f.original_path))
         else:
             # Print all items
-            print(self.items)
+            print("\n".join(str(i.original_path) for i in sorted(self.items, key=lambda i: i.original_path)))
 
     def item_exists(self, filename):
         """Return True if filename exists in trash bin's files/ subdirectory."""
@@ -414,6 +414,12 @@ def cli(verbose):
 def empty(bin=TrashBin(), trashed_before=None):
     bin.empty(trashed_before=trashed_before)
 
+# ** show
+
+@click.command()
+def show(bin=TrashBin()):
+    bin.list_items()
+
 # ** trash
 
 @click.command()
@@ -431,6 +437,7 @@ def trash(paths, bin=None):
 
 if __name__ == "__main__":
     cli.add_command(empty)
+    cli.add_command(show)
     cli.add_command(trash)
 
     cli()
