@@ -88,13 +88,36 @@ class TrashBin(object):
         for item in sorted(self.items, key=lambda i: i.date_trashed):
             if item.date_trashed < trashed_before:
                 try:
-                    total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
-                except Exception as e:
-                    log.warning('Unable to stat file: %s: %s', item.trashed_path, e)
-                else:
-                    log.debug("Would delete: %s: %s", item.date_trashed, item.original_path)
+                    log.debug("Deleting item: %s", item.trashed_path)
 
-        print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+                    # FIXME: This doesn't recurse into directories, so
+                    # it thinks all directories are 4 KB.  Maybe not
+                    # worth doing though, unless verbose, because it
+                    # could take a while to get the total size.
+
+                    # Actually delete file
+                    if item.trashed_path.is_dir():
+                        shutil.rmtree(str(item.trashed_path))
+                    else:
+                        item.trashed_path.unlink()
+
+                except Exception as e:
+                    log.warning('Unable to delete item: %s: %s', item.trashed_path, e)
+                else:
+                    log.debug("Deleted item originally at: %s", item.original_path)
+
+                    # Log size
+                    total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+
+                    # Remove info file
+                    try:
+                        item.info_file.unlink()
+                    except Exception as e:
+                        log.warning("Unable to remove info file: %s: %s", item.info_file, e.message)
+                    else:
+                        log.debug("Deleted info file: %s", item.info_file)
+
+        print("Total size of files emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
 
     def list_items(self, trashed_before=None):
         """List items in trash bin.
