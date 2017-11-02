@@ -95,6 +95,9 @@ class TrashBin(object):
                     # worth doing though, unless verbose, because it
                     # could take a while to get the total size.
 
+                    # Save size for later recording
+                    last_size = item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+
                     # Actually delete file
                     if item.trashed_path.is_dir():
                         shutil.rmtree(str(item.trashed_path))
@@ -107,7 +110,7 @@ class TrashBin(object):
                     log.debug("Deleted item originally at: %s", item.original_path)
 
                     # Log size
-                    total_size += item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+                    total_size += last_size
 
                     # Remove info file
                     try:
