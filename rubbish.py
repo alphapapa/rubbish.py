@@ -108,6 +108,11 @@ class TrashBin(object):
                     else:
                         item.trashed_path.unlink()
 
+                    # TODO: If a "[Errno 2] No such file or directory"
+                    # error happens because the trashed file isn't in
+                    # the trash bin, we should, at least optionally,
+                    # go ahead and delete the .trashinfo file.
+
                 except Exception as e:
                     log.warning('Unable to delete item: %s: %s', item.trashed_path, e)
                 else:
@@ -124,6 +129,7 @@ class TrashBin(object):
                     else:
                         log.debug("Deleted info file: %s", item.info_file)
 
+        # FIXME: This should be logged to STDERR, probably.
         print("Total size of files emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
 
     def list_items(self, trashed_before=None):
