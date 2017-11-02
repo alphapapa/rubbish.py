@@ -91,7 +91,7 @@ class TrashBin(object):
             # loop as soon as we encounter an item we aren't deleting.
             if item.date_trashed < trashed_before:
                 try:
-                    log.debug("Deleting item: %s", item.trashed_path)
+                    log.debug("Deleting item: %s (%s)", item.trashed_path, item.info_file)
 
                     # FIXME: This doesn't recurse into directories, so
                     # it thinks all directories are 4 KB.  Maybe not
@@ -111,7 +111,7 @@ class TrashBin(object):
                 except Exception as e:
                     log.warning('Unable to delete item: %s: %s', item.trashed_path, e)
                 else:
-                    log.debug("Deleted item originally at: %s", item.original_path)
+                    log.info("Deleted item originally at: %s", item.original_path)
 
                     # Log size
                     total_size += last_size
@@ -367,7 +367,7 @@ class TrashedPath(object):
         except Exception as e:
             log.error("Unable to delete file from trash bin: %s: %s", self.trashed_path, e)
         else:
-            log.debug("Deleted: %s", self.trashed_path)
+            log.info("Deleted: %s", self.trashed_path)
 
         # Delete info file
         try:
@@ -449,7 +449,7 @@ class TrashedPath(object):
             raise
         else:
             # Restore complete
-            log.debug("Restored to path: %s", str(target_path))
+            log.info("Restored to path: %s", str(target_path))
 
             # Remove .trashinfo file
             self._remove_trashinfo_file()
@@ -498,7 +498,7 @@ class TrashedPath(object):
 
             return False
         else:
-            log.debug('Trashed "%s" as: "%s"', self.original_path, self.trashed_path)
+            log.info('Trashed "%s" as: "%s"', self.original_path, self.trashed_path)
 
 # ** Exceptions
 
@@ -529,9 +529,9 @@ def cli(verbose):
     if verbose >= 2:
         LOG_LEVEL = log.DEBUG
     elif verbose == 1:
-        LOG_LEVEL = log.WARNING
+        LOG_LEVEL = log.INFO
     else:
-        LOG_LEVEL = log.ERROR
+        LOG_LEVEL = log.WARNING
 
     log.basicConfig(level=LOG_LEVEL, format="%(levelname)s: %(message)s")
 
