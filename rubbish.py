@@ -86,6 +86,9 @@ class TrashBin(object):
         # TODO: Use shutil.disk_usage?
         total_size = 0
         for item in sorted(self.items, key=lambda i: i.date_trashed):
+
+            # TODO: Since the items are sorted, we should break the
+            # loop as soon as we encounter an item we aren't deleting.
             if item.date_trashed < trashed_before:
                 try:
                     log.debug("Deleting item: %s", item.trashed_path)
@@ -93,7 +96,8 @@ class TrashBin(object):
                     # FIXME: This doesn't recurse into directories, so
                     # it thinks all directories are 4 KB.  Maybe not
                     # worth doing though, unless verbose, because it
-                    # could take a while to get the total size.
+                    # could take a while to get the total size.  We
+                    # should use an option to log sizes recursively.
 
                     # Save size for later recording
                     last_size = item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
