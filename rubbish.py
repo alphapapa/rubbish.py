@@ -216,8 +216,6 @@ class TrashedPath(object):
                 self._read_trashinfo_file()
             except Exception as e:
                 raise Exception('Unable to read .trashinfo file ("%s"): %s', e, self.info_file)
-            else:
-                log.debug("Read .trashinfo file: %s", self.info_file)
 
     def _read_matching_info_file(self):
         """Find and read .trashinfo file for item's path."""
