@@ -79,6 +79,14 @@ class TrashBin(object):
         if not trashed_before:
             raise Exception("trashed_before is required right now.")
 
+        def unlink_info_file(item):
+            try:
+                item.info_file.unlink()
+            except Exception as e:
+                log.warning("Unable to remove info file: %s: %s", item.info_file, e)
+            else:
+                log.debug("Deleted info file: %s", item.info_file)
+
         # Convert relative date string to datetime object
         trashed_before = date_string_to_datetime(trashed_before)
 
@@ -108,26 +116,21 @@ class TrashBin(object):
                     else:
                         item.trashed_path.unlink()
 
-                    # TODO: If a "[Errno 2] No such file or directory"
-                    # error happens because the trashed file isn't in
-                    # the trash bin, we should, at least optionally,
-                    # go ahead and delete the .trashinfo file.
+                except FileNotFoundError as e:
+                    log.info("Trashed file not found (%s): deleting .trashinfo file", e)
+
+                    unlink_info_file(item)
 
                 except Exception as e:
-                    log.warning('Unable to delete item: %s: %s', item.trashed_path, e)
+                    log.warning('Unable to delete item: %s (%s)', type(e), e)
+
                 else:
                     log.info("Deleted item originally at: %s", item.original_path)
 
                     # Log size
                     total_size += last_size
 
-                    # Remove info file
-                    try:
-                        item.info_file.unlink()
-                    except Exception as e:
-                        log.warning("Unable to remove info file: %s: %s", item.info_file, e.message)
-                    else:
-                        log.debug("Deleted info file: %s", item.info_file)
+                    unlink_info_file(item)
 
         # FIXME: This should be logged to STDERR, probably.
         print("Total size of files emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
