@@ -4,6 +4,8 @@
 
 =rubbish.py= is a command-line interface to the FreeDesktop.org (XDG) trash bin, stored at =~/.local/share/Trash=.
 
+** Rationale
+
 The =pytrash= / =trash-cli= package works well, but has a few minor bugs, and the code confuses me, so I decided on a fresh start.  Unlike =pytrash=,  =rubbish.py= only supports the standard XDG trash bin, not the earlier directories like =~/.Trash=, =~/.Trash-1000=, etc, and it does not support per-volume trash bins.
 
 ** Features
@@ -12,22 +14,44 @@ The =pytrash= / =trash-cli= package works well, but has a few minor bugs, and th
 
 It's easy to specify dates in many formats, including natural language such as =2 months ago= when using the =--trashed-before= option.  This makes it easy to expire files from the trash bin by running, e.g.:
 
-#+BEGIN_SRC sh
-rubbish.py empty --trashed-before "2 months ago"
-rubbish.py empty --trashed-before yesterday
-#+END_SRC
+#+BEGIN_EXAMPLE
+$ rubbish.py empty --trashed-before "2 months ago"
+$ rubbish.py empty --trashed-before yesterday
+#+END_EXAMPLE
 
 *** Uses good libraries
 
 As much as possible, the best-available Python libraries are used to make writing and maintenance easy.
 
-** TODO:
+** Usage
 
-+  [X] Move files/directories to trash
-+  [X] List contents of trash bin
-+  [ ] Empty bin (currently prints what would be deleted)
-+  [ ] Restore items from trash to original location
-+  [ ] ...?
+#+BEGIN_EXAMPLE
+$ rubbish.py --help
+Usage: rubbish.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -v, --verbose
+  --help         Show this message and exit.
+
+Commands:
+  empty    Empty files from trash bin.
+  list     Print list of items in trash bin.
+  orphans  List or empty orphaned trash files.
+  restore  Restore paths from trash bin to original...
+  trash    Move paths to trash bin.
+#+END_EXAMPLE
+
+Other examples:
+
+#+BEGIN_EXAMPLE
+$ rubbish list --size --trashed-before today
+2019-12-23 06:42:14 (2.4 GiB): /home/me/Downloads/file1.ext
+2019-12-23 06:42:31 (2.4 GiB): /home/me/Downloads/file2.ext
+2019-12-23 06:42:38 (2.4 GiB): /home/me/Downloads/file3.ext
+2019-12-25 23:14:31 (3.3 GiB): /home/me/Downloads/file4.ext
+2019-12-25 23:14:31 (18.0 KiB): /home/me/Downloads/file5.txt
+Total size: 10.5 GiB
+#+END_EXAMPLE
 
 ** License
 
