@@ -13,7 +13,7 @@ from pathlib import Path
 from time import mktime
 
 import click
-import hurry.filesize
+import humanize
 import parsedatetime
 
 # * Constants
@@ -543,7 +543,7 @@ def delete_paths(paths):
 def format_size(size):
     "Return SIZE formatted for output."
 
-    return hurry.filesize.size(size, system=hurry.filesize.alternative)
+    return humanize.naturalsize(size, binary=True)
 
 def path_size(path):
     "Return size of PATH (following symlinks) in bytes."
