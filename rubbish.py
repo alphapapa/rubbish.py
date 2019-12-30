@@ -429,16 +429,17 @@ class TrashedPath(object):
 
         # Ensure destination doesn't already exist
         if target_path.exists():
-            raise Exception("Can't restore because path already exists: %s" % str(target_path))
+            log.critical("Can't restore because path already exists: %s" % str(target_path))
 
             return False
 
         # Move path back
         try:
             shutil.move(self.trashed_path.as_posix(), target_path.as_posix())
-        except Exception:
-            log.critical("Can't restore to path: ", target_path)
-            raise
+        except Exception as e:
+            log.critical("Can't restore to path: %s: %s", target_path, e.message)
+
+            return False
         else:
             # Restore complete
             log.info("Restored to path: %s", str(target_path))
