@@ -601,6 +601,8 @@ def cli(verbose):
                  help="Empty items trashed before this date. Date may be given in many formats, "
                  "including natural language like \"1 month ago\".")
 def empty(bin=TrashBin(), trashed_before=None):
+    """Empty files from trash bin."""
+
     bin.empty(trashed_before=trashed_before)
 
 # ** expire
