@@ -372,9 +372,7 @@ class TrashedPath(object):
             log.debug("Deleted: %s", self.info_file)
 
     def restore(self, dest=None):
-        """Restore item to its original location.
-
-        If _dest_path_ is given, restore to there instead."""
+        """Restore item to its original location or to DEST."""
 
         # Be careful not to overwrite existing files when using
         # os.path.rename! shutil.move might be useful, but it's
@@ -656,10 +654,10 @@ def list_items(bin=TrashBin(), size=False, trashed_before=None):
 
 @click.command()
 @click.option("--to", type=click.Path(exists=True),
-              help="When given, restore to this directory instead of original location")
+              help="Restore to this directory instead of original location")
 @click.argument('paths', type=click.Path(exists=False), nargs=-1)
 def restore(paths, to=None, bin=None):
-    """Restore paths from trash bin to original location, or to TO when given."""
+    """Restore paths from trash bin to original location, or to directory TO."""
 
     # Instantiate bin once
     bin = TrashBin()
