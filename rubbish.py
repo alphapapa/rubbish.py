@@ -62,8 +62,10 @@ class TrashBin(object):
                 self.info_path.is_dir()):
             raise Exception("Path does not appear to be a valid XDG trash bin: %s", self.path)
 
-    def empty(self=None, trashed_before=None):
+    def empty(self=None, size=False, trashed_before=None):
         """Delete items from trash bin.
+
+        size: If true, return total size of files deleted.
 
         trashed_before: Either a datetime.datetime object or a string
                         parseable by parsedatetime.  Items trashed
@@ -93,8 +95,9 @@ class TrashBin(object):
                 try:
                     log.debug("Deleting item: %s (%s)", item.trashed_path, item.info_file)
 
-                    # Save size for later recording
-                    last_size = path_size(item.trashed_path)
+                    if size:
+                        # Save size for later recording
+                        last_size = path_size(item.trashed_path)
 
                     # Actually delete file
                     if item.trashed_path.is_dir():
@@ -113,7 +116,8 @@ class TrashBin(object):
                     log.info("Deleted item originally at: %s", item.original_path)
 
                     # Log size
-                    total_size += last_size
+                    if size:
+                        total_size += last_size
 
                     # Remove info file
                     try:
@@ -123,8 +127,8 @@ class TrashBin(object):
                     else:
                         log.debug("Deleted info file: %s", item.info_file)
 
-        # FIXME: This should be logged to STDERR, probably.
-        print("Total size of files emptied:", format_size(total_size))
+        if size:
+            return total_size
 
     def orphans(self):
         """Return list of trashed items which lack a .trashinfo file."""
@@ -577,13 +581,17 @@ def cli(verbose):
 # ** empty
 
 @click.command()
+@click.option("--size", is_flag=True, help="Show total size of deleted files")
 @click.option('--trashed-before', type=str,
                  help="Empty items trashed before this date. Date may be given in many formats, "
                  "including natural language like \"1 month ago\".")
-def empty(bin=TrashBin(), trashed_before=None):
+def empty(bin=TrashBin(), size=False, trashed_before=None):
     """Empty files from trash bin."""
 
-    bin.empty(trashed_before=trashed_before)
+    total_size = bin.empty(trashed_before=trashed_before)
+    if size and total_size:
+        # FIXME: This should be logged to STDERR, probably.
+        print("Total size of files emptied:", format_size(total_size))
 
 # ** expire
 
