@@ -70,8 +70,6 @@ class TrashBin(object):
                         before this will be deleted.
         """
 
-        print(trashed_before)
-
         if not self:
             self = TrashBin()
 
