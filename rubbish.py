@@ -124,7 +124,7 @@ class TrashBin(object):
                         log.debug("Deleted info file: %s", item.info_file)
 
         # FIXME: This should be logged to STDERR, probably.
-        print("Total size of files emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+        print("Total size of files emptied:", format_size(total_size))
 
     def list_items(self, trashed_before=None):
         """List items in trash bin.
@@ -559,6 +559,11 @@ def delete_paths(paths):
 
     return total_size
 
+def format_size(size):
+    "Return SIZE formatted for output."
+
+    return hurry.filesize.size(size, system=hurry.filesize.alternative)
+
 def path_size(path):
     "Return size of PATH (following symlinks) in bytes."
     size = 0
@@ -615,7 +620,7 @@ def orphans(bin=TrashBin(), empty=False, size=False):
     if empty:
         # Empty orphans from bin.
         total_size = delete_paths(bin.orphans())
-        print("Total size of orphans emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+        print("Total size of orphans emptied:", format_size(total_size))
     else:
         # Just list orphans.
         orphans = bin.orphans()
@@ -623,7 +628,7 @@ def orphans(bin=TrashBin(), empty=False, size=False):
             print(str(o))
         if size:
             total_size = sum(path_size(p) for p in orphans)
-            print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+            print("Total size:", format_size(total_size))
 
 # ** show
 
