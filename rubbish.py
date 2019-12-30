@@ -126,25 +126,6 @@ class TrashBin(object):
         # FIXME: This should be logged to STDERR, probably.
         print("Total size of files emptied:", format_size(total_size))
 
-    def list_items(self, trashed_before=None):
-        """List items in trash bin.
-
-        Trashed directories are not descended into."""
-
-        if not self.items:
-            self._read_info_files()
-
-        if trashed_before:
-            # Convert relative date string to datetime object
-            trashed_before = date_string_to_datetime(trashed_before)
-
-            for f in sorted(self.items, key=lambda i: i.date_trashed):
-                if f.date_trashed < trashed_before:
-                    print("{}: {}".format(f.date_trashed, f.original_path))
-        else:
-            # Print all items
-            print("\n".join(str(i.original_path) for i in sorted(self.items, key=lambda i: i.original_path)))
-
     def orphans(self):
         """Return list of trashed items which lack a .trashinfo file."""
 
@@ -632,11 +613,44 @@ def orphans(bin=TrashBin(), empty=False, size=False):
             total_size = sum(path_size(p) for p in orphans)
             print("Total size:", format_size(total_size))
 
-# ** show
+# ** list
 
-@click.command()
-def show(bin=TrashBin()):
-    bin.list_items()
+@click.command("list")
+@click.option("--size", is_flag=True, help="Show total size of trashed files")
+@click.option('--trashed-before', type=str,
+                 help="List items trashed before this date. Date may be given in many formats, "
+                 "including natural language like \"1 month ago\".")
+def list_items(bin=TrashBin(), size=False, trashed_before=None):
+    """Print list of items in trash bin."""
+
+    if not bin.items:
+        bin._read_info_files()
+
+    if trashed_before:
+        # Print items trashed before a certain time.
+
+        # Convert relative date string to datetime object.
+        trashed_before = date_string_to_datetime(trashed_before)
+
+        items = [f for f in sorted(bin.items, key=lambda i: i.date_trashed)
+                 if f.date_trashed < trashed_before]
+    else:
+        # Print all items
+        items = sorted(bin.items, key=lambda i: i.original_path)
+
+    if size:
+        # Print items with sizes.
+        total_size = 0
+        for item in items:
+            size = path_size(item.trashed_path)
+            human_size = format_size(size)
+            total_size += size
+            print("{} ({}): {}".format(item.date_trashed, human_size, item.original_path))
+        print("Total size:", format_size(total_size))
+    else:
+        # Print items without size.
+        for item in items:
+            print("{}: {}".format(item.date_trashed, item.original_path))
 
 # ** restore
 
@@ -670,9 +684,9 @@ def trash(paths, bin=None):
 
 if __name__ == "__main__":
     cli.add_command(empty)
+    cli.add_command(list_items)
     cli.add_command(orphans)
     cli.add_command(restore)
-    cli.add_command(show)
     cli.add_command(trash)
 
     cli()
