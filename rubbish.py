@@ -145,6 +145,21 @@ class TrashBin(object):
             # Print all items
             print("\n".join(str(i.original_path) for i in sorted(self.items, key=lambda i: i.original_path)))
 
+    def orphans(self):
+        """Return list of trashed items which lack a .trashinfo file."""
+
+        if not self.items:
+            self._read_info_files()
+
+        def trashed_path_in_info_files(path):
+            # Return True if PATH is a trashed_path in this trash bin.
+            for item in self.items:
+                if item.trashed_path == path:
+                    return True
+
+        return [f for f in self.files_path.iterdir()
+                if not trashed_path_in_info_files(f)]
+
     def item_exists(self, filename):
         """Return True if filename exists in trash bin's files/ subdirectory."""
 
@@ -517,6 +532,33 @@ def date_string_to_datetime(s):
     # datetime object out of it.
     return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
 
+def delete_paths(paths):
+    """Delete PATHS and return total size of files deleted."""
+    # Used for deleting orphaned trash files.
+
+    total_size = 0
+    for path in paths:
+        try:
+            log.debug("Deleting path: %s", path)
+
+            # Save size for later recording
+            last_size = path_size(path)
+
+            # Actually delete file
+            if path.is_dir():
+                shutil.rmtree(str(path))
+            else:
+                path.unlink()
+        except Exception as e:
+             log.warning('Unable to delete item: %s: %s', path, e)
+        else:
+            log.info("Deleted path: %s", path)
+
+            # Record size
+            total_size += last_size
+
+    return total_size
+
 def path_size(path):
     "Return size of PATH (following symlinks) in bytes."
     size = 0
@@ -560,6 +602,29 @@ def empty(bin=TrashBin(), trashed_before=None):
 
 # TODO: Make an "expire" command that would do what "empty --trashed-before" does.  Much clearer.
 
+# ** orphans
+
+@click.command()
+@click.option("--empty", is_flag=True, help="Empty orphans from bin")
+@click.option("--size", is_flag=True, help="Show total size of orphans")
+def orphans(bin=TrashBin(), empty=False, size=False):
+    """List or empty orphaned trash files.
+
+    Orphans are files in the trash bin without a corresponding .trashinfo file."""
+
+    if empty:
+        # Empty orphans from bin.
+        total_size = delete_paths(bin.orphans())
+        print("Total size of orphans emptied:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+    else:
+        # Just list orphans.
+        orphans = bin.orphans()
+        for o in orphans:
+            print(str(o))
+        if size:
+            total_size = sum(path_size(p) for p in orphans)
+            print("Total size:", hurry.filesize.size(total_size, system=hurry.filesize.alternative))
+
 # ** show
 
 @click.command()
@@ -598,6 +663,7 @@ def trash(paths, bin=None):
 
 if __name__ == "__main__":
     cli.add_command(empty)
+    cli.add_command(orphans)
     cli.add_command(restore)
     cli.add_command(show)
     cli.add_command(trash)
