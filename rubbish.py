@@ -93,14 +93,8 @@ class TrashBin(object):
                 try:
                     log.debug("Deleting item: %s (%s)", item.trashed_path, item.info_file)
 
-                    # FIXME: This doesn't recurse into directories, so
-                    # it thinks all directories are 4 KB.  Maybe not
-                    # worth doing though, unless verbose, because it
-                    # could take a while to get the total size.  We
-                    # should use an option to log sizes recursively.
-
                     # Save size for later recording
-                    last_size = item.trashed_path.lstat().st_size # Use lstat in case it's a symlink
+                    last_size = path_size(item.trashed_path)
 
                     # Actually delete file
                     if item.trashed_path.is_dir():
@@ -522,6 +516,18 @@ def date_string_to_datetime(s):
     # didn't go the extra inch and provide a decent API to get a
     # datetime object out of it.
     return datetime.fromtimestamp(mktime(parsedatetime.Calendar().parse(s)[0]))
+
+def path_size(path):
+    "Return size of PATH (following symlinks) in bytes."
+    size = 0
+    if path.is_dir():
+        for p in path.iterdir():
+            size += path_size(p)
+    else:
+        # Use lstat in case path is a symlink.
+        size += path.lstat().st_size
+
+    return size
 
 # * Setup Click
 
