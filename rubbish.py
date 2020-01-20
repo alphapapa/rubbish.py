@@ -654,10 +654,14 @@ def list_items(bin=TrashBin(), size=False, trashed_before=None):
         # Print items with sizes.
         total_size = 0
         for item in items:
-            size = path_size(item.trashed_path)
-            human_size = format_size(size)
-            total_size += size
-            print("{} ({}): {}".format(item.date_trashed, human_size, item.original_path))
+            try:
+                size = path_size(item.trashed_path)
+            except FileNotFoundError:
+                log.warning("Trashed path not found: %s" % item.trashed_path)
+            else:
+                human_size = format_size(size)
+                total_size += size
+                print("{} ({}): {}".format(item.date_trashed, human_size, item.original_path))
         print("Total size:", format_size(total_size))
     else:
         # Print items without size.
