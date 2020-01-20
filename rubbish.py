@@ -614,11 +614,17 @@ def orphans(bin=TrashBin(), empty=False, size=False):
     else:
         # Just list orphans.
         orphans = bin.orphans()
-        for o in orphans:
-            print(str(o))
+
         if size:
-            total_size = sum(path_size(p) for p in orphans)
+            total_size = 0
+            for orphan in orphans:
+                orphan_size = path_size(orphan)
+                total_size += orphan_size
+                print("%s (%s)" % (str(orphan), format_size(orphan_size)))
             print("Total size:", format_size(total_size))
+        else:
+            for orphan in orphans:
+                print(str(orphan))
 
 # ** list
 
