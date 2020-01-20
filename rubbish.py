@@ -545,7 +545,7 @@ def delete_paths(paths):
 def format_size(size):
     "Return SIZE formatted for output."
 
-    return humanize.naturalsize(size, binary=True)
+    return humanize.naturalsize(size, gnu=True)
 
 def path_size(path):
     "Return size of PATH (following symlinks) in bytes."
