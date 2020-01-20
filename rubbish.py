@@ -3,7 +3,6 @@
 # * Imports
 
 import logging as log
-import re
 import os
 import shutil
 
