@@ -186,6 +186,7 @@ class TrashedPath(object):
         self.original_path = None
         self.trashed = False
         self.trashed_path = None
+        self.size = None
 
         # TODO: Check FreeDesktop.org specs to see if timezone/UTC is specified.
         self.date_trashed = None  # datetime object in UTC
@@ -209,6 +210,14 @@ class TrashedPath(object):
                 self._read_trashinfo_file()
             except Exception as e:
                 raise Exception('Unable to read .trashinfo file ("%s"): %s', e, self.info_file)
+
+    def read_size(self):
+        """Read and set size for item's size on disk."""
+
+        try:
+            self.size = path_size(self.trashed_path)
+        except FileNotFoundError:
+            log.warning("Trashed path not found: %s" % self.trashed_path)
 
     def _read_matching_info_file(self):
         """Find and read .trashinfo file for item's path."""
@@ -644,29 +653,33 @@ def list_items(bin=TrashBin(), size=False, trashed_before=None):
         # Convert relative date string to datetime object.
         trashed_before = date_string_to_datetime(trashed_before)
 
-        items = [f for f in sorted(bin.items, key=lambda i: i.date_trashed)
+        items = [f for f in bin.items
                  if f.date_trashed < trashed_before]
     else:
         # Print all items
-        items = sorted(bin.items, key=lambda i: i.original_path)
+        items = bin.items
 
     if size:
         # Print items with sizes.
+        for item in items:
+            item.read_size()
+        items = sorted(items, key=lambda i: i.size if i.size else 0)
+
         total_size = 0
         for item in items:
-            try:
-                size = path_size(item.trashed_path)
-            except FileNotFoundError:
-                log.warning("Trashed path not found: %s" % item.trashed_path)
+            if item.size:
+                human_size = format_size(item.size)
+                total_size += item.size
             else:
-                human_size = format_size(size)
-                total_size += size
-                print("{} ({}): {}".format(item.date_trashed, human_size, item.original_path))
+                human_size = None
+            print("{} ({}): {}".format(item.date_trashed, human_size, item.original_path))
         print("Total size:", format_size(total_size))
+        print("Trashed-On HH:MM:SS (Size): /Original/Path")
     else:
         # Print items without size.
-        for item in items:
+        for item in sorted(bin.items, key=lambda i: i.date_trashed):
             print("{}: {}".format(item.date_trashed, item.original_path))
+        print("Trashed-On HH:MM:SS: /Original/Path")
 
 # ** restore
 
