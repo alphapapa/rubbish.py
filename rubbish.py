@@ -513,7 +513,6 @@ class NoTrashinfoFilesFoundForPath(Exception):
 class OrphanTrashinfoFile(Exception):
     pass
 
-
 # * Functions
 
 def date_string_to_datetime(s):
@@ -558,6 +557,7 @@ def format_size(size):
 
 def path_size(path):
     "Return size of PATH (following symlinks) in bytes."
+
     size = 0
     if path.is_dir():
         for p in path.iterdir():
