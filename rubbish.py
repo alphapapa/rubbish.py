@@ -6,7 +6,7 @@ import logging as log
 import os
 import shutil
 
-from configparser import ConfigParser, ParsingError, NoSectionError, NoOptionError
+from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
 from time import mktime
