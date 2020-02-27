@@ -596,7 +596,7 @@ def cli(verbose):
 def empty(bin=TrashBin(), size=False, trashed_before=None):
     """Empty files from trash bin."""
 
-    total_size = bin.empty(trashed_before=trashed_before)
+    total_size = bin.empty(trashed_before=trashed_before, size=size)
     if size and total_size:
         # FIXME: This should be logged to STDERR, probably.
         print("Total size of files emptied:", format_size(total_size))
