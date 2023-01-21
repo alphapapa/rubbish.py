@@ -1,0 +1,180 @@
+
+
+* Plans
+
+There is a need for a good command-line XDG trash bin utility.  =trash-cli= works, but I can't follow its code, and it's far from PEP-8.  It's very slow, especially from a cold cache.  There must be a better way.
+
+** Phase 1: trash files and directories
+
+Make it delete files to the XDG trash bin.
+
+*** Verify trash directory
+
+Make sure it exists and is writable.
+
+If it's not, should we create it, or prompt to create it?  (Occasionally I have manually emptied the trash by just doing =rm -rf ~/.local/share/Trash=).
+
+*** If on separate file system, check free space
+
+This could be helpful.  e.g. if deleting a file from =/tmp=, and =/tmp= is on a separate filesystem, there might not be enough space in the trash directory to move the files there.
+
+However, if there were a lot of files to be trashed, it might not be worth the time to scan them all and add up the disk space.
+
+*** For each file to be trashed
+
+**** Create trashinfo file
+
+Do this first, so if the operation is aborted, we won't have a situation where the file was trashed but its trashinfo file was not, causing it to not show up in trash GUIs, which would cause it to appear to have vanished.
+
+Rename the trashinfo file if one already exists by that name.
+
+**** Trash file
+
+Move the file to the trash directory.  Rename if necessary (e.g. if a file by that name already exists).
+
+** Phase 2: list trash contents
+
+Should include options to limit by time, e.g. trashed within the last 2 weeks, or trashed more than 2 weeks ago.  Also by size, type, filename, even grepping of contents.
+
+*** Display files trashed beneath current directory
+
+Sometimes a directory may not exist anymore.  But when in a directory, it would be very helpful to be able to list files that have been trashed from beneath the current directory, and to restore them.
+
+*** Display entire trash contents
+
+** Phase 3: restore from trash
+
+Should have options to restore to original location (requiring re-creating directory structure), or to other location.
+
+Providing a menu of files (like =restore-trash=) would be good.  Also would be good to give paths or names and either offer a menu based on the ones given, or restore any matches to current directory.
+
+Also should have an option to restore a copy of the files and leave them in the trash.  This could be useful, because restoring files from arbitrary paths to other arbitrary paths using a terminal could be confusing and error-prone, so keeping a copy in the trash would make it easier in the case one accidentally deleted a wanted file after restoring it from the trash. (So it might also be helpful to have some way to avoid re-trashing the same files if they're already in the trash.  But that's probably out-of-scope, because doing it "correctly" would require going so far as checksumming files, which would be messy and slow.)
+
+** Phase 4: empty trash
+
+This should be the easiest part.
+
+Would be nice for =-v= to show before/after disk usage, etc.
+
+* Tasks
+
+** TODO Add ~expire~ command to replace ~empty --trashed-before~
+:LOGBOOK:
+- State "TODO"       from              [2023-01-21 Sat 11:39]
+:END:
+
+Instead of doing ~rubbish empty --trashed-before "1 week ago"~ I think ~rubbish expire "1 week ago"~ would be better.  I think ~empty~ should mean "empty", i.e. the bin will be empty after doing it.  ~expire~ should be more obviously associated with a timestamp and doesn't necessarily imply that the bin will be completely empty after doing so. 
+
+* Python CLI packages
+
+There are so many to choose from!  Here are some of the best ones I've found:
+
+** [[http://www.pyinvoke.org/prior_art.html][Prior art --- Invoke documentation]]
+
+Invoke is kind of like GNU Make but in Python.  It makes it very easy to call functions from the command line, passing arguments and options automatically.
+
+** [[https://pypi.python.org/pypi/aaargh][aaargh 0.7.1 : Python Package Index]]
+
+A decorator-based interface to argparse.  Looks very nice.
+
+** [[https://pythonhosted.org/argh/index.html][Argh: The Natural CLI --- argh 0.23.3 documentation]]
+
+Also a wrapper for argparse, but not decorator-based, so not quite as clean.
+
+** [[https://github.com/micheles/plac/blob/master/doc/plac_core.rst][plac/plac\_core.rst at master · micheles/plac]]
+
+The documentation is verbose, and unfortunately not easy to access, since it first directs you to a PDF (!) built from .rst files, but it's comprehensive and might be worth a try.
+
+** [[http://click.pocoo.org/5/][Click]]
+
+It looks like it's worth using Click over aaargh because it can do a lot more, but the API is nearly the same.
+
+But [[https://github.com/pallets/click/issues/523][this]] is not cool:
+
+#+BEGIN_QUOTE
+No, that's not how Click is supposed to be used at all, and TBH I don't really see the point of it. You're using classes as if they were modules.
+#+END_QUOTE
+
+So what if I /want/ to organize my code into classes and methods, and call those methods from Click?  I /have/ to write extra functions outside of the classes to call the methods, and pass the variables by writing them out 3 or 4 times per variable.  Ugh.
+
+** [[https://pypi.python.org/pypi/Baker/][Baker 1.3 : Python Package Index]]
+
+Very simple decorator-based system.  Looks really nice and clean and simple.  Not maintained for a few years, but might still be good.
+
++ I really wanted to use Baker, but it just isn't quite sophisticated enough.  I have a =trashed_before= argument to the =empty= function, but I have to specify it as =--trashed_before=, and I can't find a way to change that to =--trashed-before=.  Going to try =aaargh= and =Click=.
+
+** [[https://github.com/buchuki/opterator/][buchuki/opterator: generate commandline options from the main method signature]]
+
+Looks kind of nice too.
+
+* Other projects
+
+** [[http://www.ubuntugeek.com/autotrash-purges-files-from-your-trash-based-on-age-andor-filename.html][Autotrash]]
+
+I didn't realize that this package is in Debian and Ubuntu.  It's even in Python.  However, its code is very messy...
+
+** [[https://github.com/ktaneishi/pytrash][ktaneishi/pytrash: CLI for GNOME trash can.]]
+
+Not bad but doesn't use nice date handling and such.
+
+** [[https://github.com/notklaatu/trashy][notklaatu/trashy: A sane intermediary to the unix 'rm' command. This is a mirror of gitlab.com/trashy]]
+
+It's in Bash.  Why?
+
+** [[https://github.com/hsoft/send2trash][hsoft/send2trash: Python library to natively send files to Trash (or Recycle bin) on all platforms.]]
+
+In Python, and multi-platform.  But it doesn't even use classes...
+
+* Name ideas
+
++  Baldertrash :: Sounds sort of funny.
++  baloney :: Nothing turned up for "python baloney"
++  frippery :: Nothing came up for "python frippery".  Contains "p" and "y" sort of close together.
++  chuck :: As in "chuck it".
++  rubbish :: There's a GitHub user by that name, but there doesn't seem to be a project named that.
+     -  [2016-11-14 Mon 22:30] I'm going to use =rubbish.py= for the time being.  Not really happy with it, but it's about the best that I can find at the moment. 
++  junk :: No Debian package by that name.
++  crap :: =crap.py= would be sort of funny, but...
+     -  There is this: [[https://github.com/marmida/quality/blob/master/quality/crap.py][quality/crap.py at master · marmida/quality]].  It's not the name of the project, but the file exists...
+     -  Also this: [[https://github.com/drewsday/Physics-Python-Scripts/blob/master/crap.py][Physics-Python-Scripts/crap.py at master · drewsday/Physics-Python-Scripts]], but it's not really anything...
+     -  And [[https://gist.github.com/pedrovanzella/29fa2274c0ece35e74e7][crap.py]], which is just a gist (and it has comments in Portuguese!)
++  scruffy.py :: Like "Scruffy, the janitor" from Futurama.  Handling the trash bin is like a janitor...
+     -  I really liked this idea, but there's already [[https://github.com/snare/scruffy][a project]] by that name.  :(
+     -  scrup.py :: Maybe that's taking the =py= thing too far...
++  pyffle :: "trivial nonsense".
+     -  Like piffle but with py.
+     -  Already a username/project with that name, something about an old BBS.
++  pyle :: As in "trash pyle"...probably already taken, though...yeah, it is.
+
+** Synonyms for trash
+
+-  bunkum
+-  clamjamfry
+-  dregs
+-  drivel
+-  dross
+-  flapdoodle
+-  flotsam
+-  flummery
+-  folderol
+-  galimatias
+-  garbage
+-  gimcrackery
+-  hogwash
+-  hokum
+-  hooey
+-  junk
+-  malarkey
+-  offal
+-  [X] refuse :: Too ambiguous, could be the verb.
+-  riffraff
+-  rot
+-  rubbish
+-  rubble
+-  ruin
+-  slag
+-  sordes
+-  [x] stultiloquence :: I mean...
+-  waste
+-  wastrel
+
